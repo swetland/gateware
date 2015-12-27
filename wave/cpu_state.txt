@@ -1,0 +1,4 @@
+0 DEC
+1 IMM
+2 EXE
+3 LOD

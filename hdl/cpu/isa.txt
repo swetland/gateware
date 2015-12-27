@@ -1,0 +1,60 @@
+
+0000 aaaa bbbb ffff    alu Ra, Ra, Rb
+0001 aaaa iiii iiii    mov Ra, si8
+0010 aaaa iiii ffff    alu Ra, Ra, si4
+0011 aaaa bbbb ffff    alu Rb, Ra, si16  (fetches imm after)
+0100 aaaa bbbb ffff    alu R0, Ra, Rb
+0101 aaaa bbbb ffff    alu R1, Ra, Rb
+0110 aaaa bbbb ffff    alu R2, Ra, Rb
+0111 aaaa bbbb ffff    alu R3, Ra, Rb
+
+1000 aaaa bbbb iiii    lw Ra, [Rb, si4]
+1001 aaaa bbbb iiii    sw Ra, [Rb, si4]
+1010 cccc iiii iiii    bC rel8
+1010 1111 xxxx xxxx  ? undefined
+1011 cccc bbbb 0000    bC Rb
+1011 cccc bbbb 1000    blC Rb
+1011 1111 bbbb 0000  * iret
+1011 1111 xxxx 1000  ? nop
+1011 xxxx xxxx 0001  ? undefined
+1011 nnnn bbbb 0010  * mov Rb, Sn
+1011 nnnn bbbb 0011  * mov Sn, Rb
+1011 nnnn nnnn 0100  * set <flags>   (sysflags |= n)
+1011 nnnn nnnn 0101  * clr <flags>   (sysflags &= n)
+1011 nnnn nnnn 0110  * syscall n
+1011 nnnn nnnn 0111    break n
+1100 iiii iiii iiii    b pc + si12
+1101 iiii iiii iiii    bl pc + si12
+1110 aaaa bbbb 0000  * mov Ra', Rb
+1110 aaaa bbbb 0001  * mov Ra, Rb'
+1111 xxxx xxxx xxxx  ? undefined
+
+alu opcodes
+-----------
+0000 mov   r = b
+0001 and   r = a & b
+0010 orr   r = a | b
+0011 xor   r = a ^ b
+0100 add   r = a + b 
+0101 sub   r = a - b
+0110 >>1   r = b >> 1
+0111 <<1   r = b << 1
+
+1000 adc * r = a + b + c
+1001 sbc * r = a - b - c
+1010 >>4 * r = b >> 4
+1011 <<4 * r = b << 4
+1100 bis * r = a | (1 << b[3:0])
+1101 bic * r = a & (~(1 << b[3:0]))
+1110 tbs * r = a & (1 << b[3:0])
+1111 mul * r = a * b
+
+* = only in "large" version of cpu
+
+r0 - r12   general use
+r13        stack (by convention only)
+r14        link register (for BL ops)
+r15        scratch (for assembler use)
+s0 - s15   system registers
+f0 - f7    system flags
+
