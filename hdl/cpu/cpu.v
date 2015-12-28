@@ -43,7 +43,7 @@ reg do_1mem_0alu; // select input to regs.wdata
 wire ir_cond_true;
 
 // processor registers (fetch unit)
-reg [AWIDTH-1:0]pc = 16'hFFFF; //16'b0;
+reg [AWIDTH-1:0]pc = 16'b0;
 reg [15:0]ir = 16'b0;
 reg [15:0]ir_next;
 reg ir_valid = 1'b0;
@@ -52,7 +52,6 @@ reg ir_loading = 1'b0;
 reg ir_loading_next;
 
 // processor registers (main)
-reg cpu_reset = 1'b1;
 reg [1:0]state = S_DECODE;
 reg [1:0]state_next;
 reg [3:0]flags = 4'b0;
@@ -150,15 +149,17 @@ always @(*) begin
 end
 
 always @(posedge clk) begin
+/*
 	if (cpu_reset) begin
 		pc <= {AWIDTH{1'b0}};
 		ir_valid <= 1'b0;
 		ir_loading <= 1'b0;
 	end else begin
+*/
 		pc <= do_load_pc ? pc_next : pc;
 		ir_valid <= ir_valid_next;
 		ir_loading <= ir_loading_next;
-	end
+//	end
 	ir <= ir_next;
 end
 
@@ -322,7 +323,6 @@ always @(posedge clk) begin
 	adata <= do_load_adata ? regs_adata : adata;
 	bdata <= do_load_bdata ? bdata_mux : bdata;
 	wsel <= do_load_wsel ? wsel_mux : wsel;
-	cpu_reset <= 1'b0;
 end
 
 regfile #(
