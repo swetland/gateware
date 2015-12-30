@@ -1,0 +1,32 @@
+
+CPU16 is a 16-bit-instruction, 16 register, RISC-ish CPU
+--------------------------------------------------------
+
+My goal is something that in the minimal configuration would fit on
+a tiny FPGA like the low end of the Lattice ICE40 series (~1000 LUTs
+and FFs), leave some room for peripherals, be relatively simple but
+featureful enough that targeting a C compiler at it would make sense.
+
+At the moment the small configuration is weighing in at about 500-600
+LUTs and 120-130 FFs.  It's not quite done yet, not fully debugged,
+and there's probably some room for optimization still.  Hopefully it
+will not get significantly larger and maybe it'll get smaller.
+
+A small assembler (a16) is included, along with a small (but growing)
+set of assembly test cases.  Infrastructure for automated testing on
+a FPGA dev board (in addition to automated testing in simulation) is
+in the works.
+
+Verilator is used for simulation.
+
+Optional/Future Features (in progress)
+- fancier ALU (full barrel shifters + ~120 LUTs)
+- 32bit registers (vs 16bit)
+- pipeline bypass (instead of stalling on conflicts)
+- extended instruction set:
+  IRQs, Control Registers, Register Banks, Syscalls
+- C Compiler (TCC? LLVM? Hacky homebrew thing?)
+
+
+Instruction Set Details:
+https://github.com/swetland/cpu16/blob/master/hdl/cpu/isa.txt
