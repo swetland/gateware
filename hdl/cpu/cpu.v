@@ -277,6 +277,7 @@ always @(*) begin
 	end
 	4'b1100: begin // b rel12
 		using = USE_NONE;
+		do_exe_branch = 1'b1;
 		do_sel_branch = BR_REL_S12;
 	end
 	4'b1101: begin // bl rel12
