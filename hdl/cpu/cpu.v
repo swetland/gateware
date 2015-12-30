@@ -81,8 +81,9 @@ localparam BR_REL_S8  = 2'b00; // PC + S8   a short branch
 localparam BR_REL_S12 = 2'b01; // PC + S12  a long branch
 localparam BR_ABS_RB  = 2'b10; // RB        an indirect branch
 
-wire [AWIDTH-1:0]branch_imm = do_sel_branch[0] ? ir_imm_s12 : ir_imm_s8;
-wire [AWIDTH-1:0]branch_target_next = do_sel_branch[1] ? regs_bdata : (pc + branch_imm);
+wire [RWIDTH-1:0]branch_imm = do_sel_branch[0] ? ir_imm_s12 : ir_imm_s8;
+wire [RWIDTH-1:0]branch_tgt = do_sel_branch[1] ? regs_bdata : (pc + branch_imm);
+wire [AWIDTH-1:0]branch_target_next = branch_tgt[AWIDTH-1:0];
 
 // memory interface
 assign mem_wr_o = do_store;
@@ -320,8 +321,8 @@ always @(posedge clk) begin
 
 end
 
-wire [DWIDTH-1:0]raw_regs_adata;
-wire [DWIDTH-1:0]raw_regs_bdata;
+wire [RWIDTH-1:0]raw_regs_adata;
+wire [RWIDTH-1:0]raw_regs_bdata;
 
 regfile #(
 	.DWIDTH(RWIDTH)
