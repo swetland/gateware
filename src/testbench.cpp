@@ -137,6 +137,14 @@ int main(int argc, char **argv) {
 	tfp->open(vcdname);
 #endif
 
+// first tick, line up with gtk's vert lines
+	testbench->eval();
+#ifdef TRACE
+	tfp->dump(now);
+	now += 10;
+#endif
+	testbench->clk = !testbench->clk;
+
 	while (!Verilated::gotFinish()) {
 		testbench->eval();
 #ifdef TRACE
