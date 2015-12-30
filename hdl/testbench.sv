@@ -11,7 +11,7 @@ reg [15:0]count = 16'd0;
 
 always @(posedge clk) begin
 	count <= count + 16'd1;
-	if (count == 16'hFFFF) $finish;
+	if (count == 16'd256) $finish;
 end
 
 wire [15:0]wdata;
