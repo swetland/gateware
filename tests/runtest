@@ -1,0 +1,35 @@
+#!/bin/bash
+
+if [ ! -f "$1" ]; then
+	echo FAIL: No such file: $1
+	echo FAIL > "out/$1.status"
+	exit 0
+fi
+
+echo ""
+echo TEST: $1
+
+mkdir -p out/tests/
+
+if ! ./out/a16 "$1" "out/$1.hex" ; then
+	echo FAIL: $1 '(assmembly error)'
+	echo FAIL > "out/$1.status"
+	exit 0
+fi
+
+if ! ./out/Vtestbench -trace "out/$1.vcd" -load "out/$1.hex" | grep '^:WRI' > "out/$1.log" ; then
+	echo FAIL: Error simulating $1
+	echo FAIL > "out/$1.status"
+	exit 0
+fi
+
+grep '^;' "$1" | sed 's/;/:WRI /g' > "out/$1.tmpl"
+
+if ! diff "out/$1.tmpl" "out/$1.log" ; then
+	echo FAIL: $1 '(results differ)'
+	echo FAIL > "out/$1.status"
+	exit 0
+else
+	echo PASS: $1
+	echo PASS > "out/$1.status"
+fi

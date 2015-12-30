@@ -31,6 +31,20 @@ out/d16: src/d16.c
 	@mkdir -p out
 	gcc -g -Wall -O1 -o out/d16 -DSTANDALONE=1 src/d16.c
 
+TEST_DEPS := out/Vtestbench out/a16 out/d16 tests/runtest
+
+TESTS := $(wildcard tests/*.s)
+
+RESULTS := $(patsubst %.s,out/%.s.status,$(TESTS))
+
+out/tests/%.s.status: tests/%.s $(TEST_DEPS)
+	@./tests/runtest $<
+
+test: $(RESULTS)
+	@echo ""
+	@echo TESTS FAILED: `grep FAIL out/tests/*.status | wc -l`
+	@echo TESTS PASSED: `grep PASS out/tests/*.status | wc -l`
+
 clean:
 	rm -rf out/
 
