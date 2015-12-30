@@ -14,7 +14,8 @@ iiii iiii iiii 1100    b si12                PC += si12
 iiii iiii iiii 1101    bl si12               R14 = PC, PC += si12,
 0000 bbbb xxxx 1110    b Rb                  PC = Rb
 0001 bbbb xxxx 1110    bl Rb                 R14 = PC, PC = Rb
-0010 xxxx xxxx 1110    nop
+0010 0000 0000 1110    nop
+0010 nnnn aaaa 1110    debug Ra, x4          DEBUG(Ra, n4)
 
 Extended Instructions                  <--- Not implemented yet.
 ---------------------                       Will likely change during

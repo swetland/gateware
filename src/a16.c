@@ -203,6 +203,7 @@ enum tokens {
 	tMOV, tAND, tORR, tXOR, tADD, tSUB, tMUL, tMHI,
 	tSLT, tSLE, tSHR, tSHL, tBIS, tBIC, tTBS, tBIT,
 	tLW, tSW, tNOP, tNOT, tB,  tBL, tBZ, tBNZ,
+	tDEBUG,
 	tR0, tR1, tR2, tR3, tR4, tR5, tR6, tR7,
 	rR8, rR9, rR10, rR11, rR12, tR13, tR14, tR15,
 	tSP, tLR,
@@ -216,6 +217,7 @@ char *tnames[] = {
 	"MOV", "AND", "ORR", "XOR", "ADD", "SUB", "MUL", "MHI",
 	"SLT", "SLE", "SHR", "SHL", "BIS", "BIC", "TBS", "BIT",
 	"LW",  "SW",  "NOP", "NOT", "B",   "BL",  "BZ",  "BNZ",
+	"DEBUG",
 	"R0",  "R1",  "R2",  "R3",  "R4",  "R5",  "R6",  "R7",
 	"R8",  "R9",  "R10", "R11", "R12", "R13", "R14", "R15",
 	"SP",  "LR",
@@ -549,6 +551,12 @@ void assemble_line(int n, unsigned *tok, unsigned *num, char **str) {
 		} else {
 			die("expected register or address");
 		}
+		return;
+	case tDEBUG:
+		expect_register(T1);
+		expect(tCOMMA, T2);
+		expect(tNUMBER, T3);
+		emit(OP_NOP | _FLO(num[3]) | _A(to_reg(T1)));
 		return;
 	case tWORD:
 		tmp = 1;
