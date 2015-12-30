@@ -3,12 +3,6 @@
 
 `timescale 1ns / 1ps
 
-// Lattice BRAMs are synchronous only, but we want this to work
-// like a register file (but without eating up tons of DFFs), so
-// we invert the read clock, which is supported and gets "good
-// enough" behavior (since the path from regfile -> exec stage
-// register is pretty short)
-
 module regfile #(
 	parameter AWIDTH = 4,
 	parameter DWIDTH = 16
@@ -28,21 +22,8 @@ reg [DWIDTH-1:0] R[0:((1<<AWIDTH)-1)];
 always @(posedge clk) begin
 	if (wreg)
 		R[wsel] <= wdata;
-//	adata <= R[asel];
-//	bdata <= R[bsel];
 end
 assign adata = R[asel];
 assign bdata = R[bsel];
-/*
-`ifdef NEGSYNC
-always @(negedge clk) begin
-	adata = R[asel];
-	bdata = R[bsel];
-end
-`else
-`ifndef SYNC
-`endif
-`endif
-*/
 
 endmodule
