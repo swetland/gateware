@@ -1,7 +1,7 @@
 
 SRCS := hdl/testbench.sv
 SRCS += hdl/simram.sv
-SRCS += hdl/cpu/cpu.v hdl/cpu/alu.v hdl/cpu/flags.v hdl/cpu/regfile.v
+SRCS += hdl/cpu/cpu.v hdl/cpu/alu.v hdl/cpu/regfile.v
 
 VERILATOR := VERILATOR_ROOT=/work/verilator /work/verilator/bin/verilator
 
