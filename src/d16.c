@@ -31,7 +31,8 @@ const char *regname[] = {
 };
 
 const char *alufunc[] = {
-	"MOV", "AND", "ORR", "XOR", "ADD", "SUB", "SHR", "SHL",
+	"MOV", "AND", "ORR", "XOR", "ADD", "SUB", "MUL", "MHI",
+	"SLT", "SLE", "SHR", "SHL", "BIS", "BIC", "TBS", "BIT",
 };
 
 void printinst(char *buf, unsigned pc, unsigned instr, const char *fmt) {

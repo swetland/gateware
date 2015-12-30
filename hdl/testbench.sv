@@ -11,7 +11,14 @@ reg [15:0]count = 16'd0;
 
 always @(posedge clk) begin
 	count <= count + 16'd1;
-	if (count == 16'd256) $finish;
+	if (count == 16'd1000) $finish;
+	if (cpu0.ir == 16'hFFFF) begin
+		for ( integer i = 0; i < 16; i++ ) begin
+			$display(":REG R%0d %8X", i, cpu0.regs.R[i]);
+		end
+		$display(":END");
+		$finish;
+	end
 end
 
 wire [15:0]wdata;

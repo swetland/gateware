@@ -200,10 +200,9 @@ void save(const char *fn) {
 enum tokens {
 	tEOL,
 	tCOMMA, tCOLON, tOBRACK, tCBRACK, tDOT, tHASH, tSTRING, tNUMBER,
-	tMOV, tAND, tORR, tXOR, tADD, tSUB, tSHR, tSHL,
-//	tADC, tSBC, tSR4, tSL4, tBIS, tBIC, tTBS, tMUL,
-	tLW, tSW, tNOP, tNOT, tMHI,
-	tB,  tBL, tBZ, tBNZ,
+	tMOV, tAND, tORR, tXOR, tADD, tSUB, tMUL, tMHI,
+	tSLT, tSLE, tSHR, tSHL, tBIS, tBIC, tTBS, tBIT,
+	tLW, tSW, tNOP, tNOT, tB,  tBL, tBZ, tBNZ,
 	tR0, tR1, tR2, tR3, tR4, tR5, tR6, tR7,
 	rR8, rR9, rR10, rR11, rR12, tR13, tR14, tR15,
 	tSP, tLR,
@@ -214,10 +213,9 @@ enum tokens {
 char *tnames[] = {
 	"<EOL>",
 	",", ":", "[", "]", ".", "#", "<STRING>", "<NUMBER>",
-	"MOV", "AND", "ORR", "XOR", "ADD", "SUB", "SHR", "SHL",
-//	"ADC", "SBC", "SR4", "SL4", "BIS", "BIC", "TBS", "MUL",
-	"LW",  "SW",  "NOP", "NOT", "MHI",
-	"B",   "BL",  "BZ",  "BNZ",
+	"MOV", "AND", "ORR", "XOR", "ADD", "SUB", "MUL", "MHI",
+	"SLT", "SLE", "SHR", "SHL", "BIS", "BIC", "TBS", "BIT",
+	"LW",  "SW",  "NOP", "NOT", "B",   "BL",  "BZ",  "BNZ",
 	"R0",  "R1",  "R2",  "R3",  "R4",  "R5",  "R6",  "R7",
 	"R8",  "R9",  "R10", "R11", "R12", "R13", "R14", "R15",
 	"SP",  "LR",
@@ -225,7 +223,7 @@ char *tnames[] = {
 };
 
 #define FIRST_ALU_OP	tMOV
-#define LAST_ALU_OP	tSHL
+#define LAST_ALU_OP	tBIT
 #define FIRST_REGISTER	tR0
 #define LAST_REGISTER	tLR
 
@@ -301,7 +299,8 @@ int tokenize(char *line, unsigned *tok, unsigned *num, char **str) {
 		case '/':
 			if (line[1] == '/')
 				goto alldone;
-			
+		case ';':
+			goto alldone;	
 		case ',':
 			str[count] = ",";
 			num[count] = 0;
@@ -486,23 +485,21 @@ void assemble_line(int n, unsigned *tok, unsigned *num, char **str) {
 			emit(OP_ALU_RA_RA_RB | _A(to_reg(T1)) | _B(to_reg(T3)) | ALU_MOV);
 			return;
 		}
-		expect(tHASH, T3);
-		expect(tNUMBER, T4);
-		if (is_signed8(num[4])) {
-			emit(OP_MOV_RA_S8 | _A(to_reg(T1)) | _I8(num[4]));
+		expect(tNUMBER, T3);
+		if (is_signed8(num[3])) {
+			emit(OP_MOV_RA_S8 | _A(to_reg(T1)) | _I8(num[3]));
 			return;
 		} else {
-			emit(OP_MOV_RA_S8 | _A(to_reg(T1)) | _I8(num[4]));
-			emit(OP_MHI_RA_S8 | _A(to_reg(T1)) | _I8((num[4] >> 8)));
+			emit(OP_MOV_RA_S8 | _A(to_reg(T1)) | _I8(num[3]));
+			emit(OP_MHI_RA_S8 | _A(to_reg(T1)) | _I8((num[3] >> 8)));
 		}
 		return;
 	case tMHI:
 		expect_register(T1);
 		expect(tCOMMA, T2);
-		expect(tHASH, T3);
-		expect(tNUMBER, T4);
+		expect(tNUMBER, T3);
 		// range
-		emit(OP_MHI_RA_S8 | _A(to_reg(T1)) | _I8(num[4]));
+		emit(OP_MHI_RA_S8 | _A(to_reg(T1)) | _I8(num[3]));
 		return;
 	case tLW:
 	case tSW:
@@ -591,12 +588,12 @@ void assemble_line(int n, unsigned *tok, unsigned *num, char **str) {
 		expect(T2, tCOMMA);
 		expect_register(T3);
 		expect(T4, tCOMMA);
-		if ((T5 == tHASH) && (T6 == tNUMBER)) {
+		if (T5 == tNUMBER) {
 			if (T1 != T3) {
 				die("both registers must be the same in this form");
 			}
-			if (is_signed4(num[6])) {
-				emit(OP_ALU_RA_RA_S4 | _A(to_reg(T1)) | _FLO(to_func(T0)) | _I4(num[6]));
+			if (is_signed4(num[5])) {
+				emit(OP_ALU_RA_RA_S4 | _A(to_reg(T1)) | _FLO(to_func(T0)) | _I4(num[5]));
 				return;
 			} else {
 				// auto use R15 as scratch?

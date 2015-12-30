@@ -20,6 +20,7 @@ module simram(
 
 	always @(posedge clk) begin
 		if (we) begin
+			$display(":WRI %08x %08x", waddr, wdata);
 			dpi_mem_write({16'd0, waddr}, {16'd0, wdata});
 		end
 		if (re) begin

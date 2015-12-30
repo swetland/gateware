@@ -34,7 +34,7 @@
 static unsigned memory[65536];
 
 void dpi_mem_write(int addr, int data) {
-	fprintf(stderr,"WR %04x = %08x\n", addr, data);
+	//fprintf(stderr,"WR %04x = %08x\n", addr, data);
 	memory[addr & 0xFFFF] = data;
 }
 
@@ -73,7 +73,6 @@ void loadmem(const char *fn) {
 		memory[a++] = n;
 		if (a == 4096) break;
 	}
-	fprintf(stderr, "loaded %d words from '%s'\n", a, fn);
 }
 
 #ifdef TRACE
