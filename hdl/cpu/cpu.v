@@ -229,7 +229,7 @@ always @(*) begin
 		do_sel_bdata = BDATA_S8;
 	end
 	4'b0001: begin // mhi Ra, imm
-		using = USE_NONE;
+		using = USE_RA;
 		do_exe_alu = 1'b1;
 		do_sel_alu_op = ALU_MHI;
 		do_sel_wsel = WSEL_RA;
