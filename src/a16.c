@@ -30,16 +30,19 @@ void die(const char *fmt, ...) {
 }
 
 int is_signed4(unsigned n) {
+	if (n & 0x8000) n |= 0xFFFF0000;
 	if (n <= 0x7) return 1;
 	if ((n & 0xFFFFFFF8) == 0xFFFFFFF8) return 1;
 	return 0;
 }
 int is_signed8(unsigned n) {
+	if (n & 0x8000) n |= 0xFFFF0000;
 	if (n <= 0xFF) return 1;
 	if ((n & 0xFFFFFF80) == 0xFFFFFF80) return 1;
 	return 0;
 }
 int is_signed12(unsigned n) {
+	if (n & 0x8000) n |= 0xFFFF0000;
 	if (n <= 0x7FF) return 1;
 	if ((n & 0xFFFFF800) == 0xFFFFF800) return 1;
 	return 0;
@@ -81,12 +84,12 @@ void fixup_branch(const char *name, int addr, int btarget, int type) {
 	case TYPE_PCREL_S8:
 		n = btarget - addr - 1;
 		if (!is_signed8(n)) break;
-		rom[addr] = (rom[addr] & 0xFF00) | (n & 0x00FF);
+		rom[addr] = (rom[addr] & 0x00FF) | ((n & 0x00FF) << 8);
 		return;
 	case TYPE_PCREL_S12:
 		n = btarget - addr - 1;
 		if (!is_signed12(n)) break;
-		rom[addr] = (rom[addr] & 0xF000) | (n & 0x0FFF);
+		rom[addr] = (rom[addr] & 0x000F) | ((n & 0x0FFF) << 4);
 		return;
 	case TYPE_ABS_U16:
 		rom[addr] = btarget;
@@ -167,7 +170,7 @@ void checklabels(void) {
 	}
 }
 	
-int disassemble(char *buf, unsigned pc, unsigned instr, unsigned next_instr);
+void disassemble(char *buf, unsigned pc, unsigned instr);
 	
 void emit(unsigned instr) {
 	rom[PC++] = instr;
@@ -177,19 +180,11 @@ void save(const char *fn) {
 	const char *name;
 	unsigned n;
 	char dis[128];
-	int next_is_imm = 0;
 
 	FILE *fp = fopen(fn, "w");
 	if (!fp) die("cannot write to '%s'", fn);
 	for (n = 0; n < PC; n++) {
-		if (next_is_imm) {
-			next_is_imm = 0;
-			fprintf(fp, "%04x  // %04x:\n", rom[n], n);
-			continue;
-		}
-		if (disassemble(dis, n, rom[n], rom[n+1]) == 2) {
-			next_is_imm = 1;
-		}
+		disassemble(dis, n, rom[n]);
 		name = getlabel(n);
 		if (name) {
 			fprintf(fp, "%04x  // %04x: %-25s <- %s\n", rom[n], n, dis, name);
@@ -207,12 +202,8 @@ enum tokens {
 	tCOMMA, tCOLON, tOBRACK, tCBRACK, tDOT, tHASH, tSTRING, tNUMBER,
 	tMOV, tAND, tORR, tXOR, tADD, tSUB, tSHR, tSHL,
 //	tADC, tSBC, tSR4, tSL4, tBIS, tBIC, tTBS, tMUL,
-	tLW, tSW, tNOP, tNOT,
-	tBEQ, tBNE, tBCS, tBCC, tBMI, tBPL, tBVS, tBVC,
-	tBHI, tBLS, tBGE, tBLT, tBGT, tBLE, tB,   tBNV,
-	tBLEQ, tBLNE, tBLCS, tBLCC, tBLMI, tBLPL, tBLVS, tBLVC,
-	tBLHI, tBLLS, tBLGE, tBLLT, tBLGT, tBLLE, tBL, tBLNV,
-	tBLZ, tBLNZ, tBZ, tBNZ, 
+	tLW, tSW, tNOP, tNOT, tMHI,
+	tB,  tBL, tBZ, tBNZ,
 	tR0, tR1, tR2, tR3, tR4, tR5, tR6, tR7,
 	rR8, rR9, rR10, rR11, rR12, tR13, tR14, tR15,
 	tSP, tLR,
@@ -225,12 +216,8 @@ char *tnames[] = {
 	",", ":", "[", "]", ".", "#", "<STRING>", "<NUMBER>",
 	"MOV", "AND", "ORR", "XOR", "ADD", "SUB", "SHR", "SHL",
 //	"ADC", "SBC", "SR4", "SL4", "BIS", "BIC", "TBS", "MUL",
-	"LW",  "SW",  "NOP", "NOT",
-	"BEQ",  "BNE",  "BCS",  "BCC",  "BMI",  "BPL",  "BVS",  "BVC",
-	"BHI",  "BLS",  "BGE",  "BLT",  "BGT",  "BLE",  "B",  "BNV",
-	"BLEQ",  "BLNE",  "BLCS",  "BLCC",  "BLMI",  "BLPL",  "BLVS",  "BLVC",
-	"BLHI",  "BLLS",  "BLGE",  "BLLT",  "BLGT",  "BLLE",  "BL",  "BLNV",
-	"BLZ", "BLNZ", "BZ",  "BNZ",
+	"LW",  "SW",  "NOP", "NOT", "MHI",
+	"B",   "BL",  "BZ",  "BNZ",
 	"R0",  "R1",  "R2",  "R3",  "R4",  "R5",  "R6",  "R7",
 	"R8",  "R9",  "R10", "R11", "R12", "R13", "R14", "R15",
 	"SP",  "LR",
@@ -241,44 +228,6 @@ char *tnames[] = {
 #define LAST_ALU_OP	tSHL
 #define FIRST_REGISTER	tR0
 #define LAST_REGISTER	tLR
-#define FIRST_BR_OP	tBEQ
-#define LAST_BR_OP	tBNZ
-
-int is_branch(unsigned tok) {
-	return ((tok >= FIRST_BR_OP) && (tok <= LAST_BR_OP));
-}
-
-#define COND_EQ 0
-#define COND_NE 1
-#define COND_AL 14
-#define COND_NV 15
-
-unsigned to_cc(unsigned tok) {
-	switch (tok) {
-	case tBNZ: case tBLNZ:
-		return COND_NE;
-	case tB: case tBL:
-		return COND_AL;
-	default:
-		return (tok - FIRST_BR_OP) & 15;
-	}
-}
-
-int is_branch_link(unsigned tok) {
-	return ((tok >= tBLEQ) && (tok <= tBLNZ));
-}
-
-int is_conditional(unsigned tok) {
-	if (is_branch(tok)) {
-		if ((tok == tB) | (tok == tBL)) {
-			return 0;
-		} else {
-			return 1;
-		}
-	} else {
-		return 0;
-	}
-}
 
 int is_reg(unsigned tok) {
 	return ((tok >= FIRST_REGISTER) && (tok <= LAST_REGISTER));
@@ -458,42 +407,32 @@ void expect_register(unsigned got) {
 #define REG(n) (tnames[FIRST_REGISTER + (n)])
 
 // various fields
-#define _OP(n)		(((n) & 15) << 12)
-#define _A(n)		(((n) & 15) << 8)
-#define _C(n)		(((n) & 15) << 8)
-#define _B(n)		(((n) & 15) << 4)
-#define _F(n)		(((n) & 15) << 0)
-#define _I4ALU(n)	(((n) & 15) << 4)
-#define _I4MEM(n)	(((n) & 15) << 0)
-#define _I8(n)		((n) & 0xFF)
-#define _I12(n)		((n) & 0x7FF)
-#define _N(n)		(((n) & 0xFF) << 4)
+#define _OP(n)		(((n) & 15) << 0)
+#define _A(n)		(((n) & 15) << 4)
+#define _B(n)		(((n) & 15) << 8)
+#define _FHI(n)		(((n) & 15) << 12)
+#define _FLO(n)		(((n) & 15) << 8)
+#define _I4(n)		(((n) & 15) << 12)
+#define _I8(n)		(((n) & 0xFF) << 8)
+#define _I12(n)		(((n) & 0xFFF) << 4)
 
-#define OP_ALU_RA_RA_RB		0x0000
-#define OP_MOV_RA_S8		0x1000
-#define OP_ALU_RA_RA_S4		0x2000
-#define OP_ALU_RB_RA_U16	0x3000
-#define OP_ALU_R0_RA_RB		0x4000
-#define OP_ALU_R1_RA_RB		0x5000
-#define OP_ALU_R2_RA_RB		0x6000
-#define OP_ALU_R3_RA_RB		0x7000
-#define OP_LW_RB_S4		0x8000
-#define OP_SW_RB_S4		0x9000
-#define OP_B_C_S8		0xA000
-#define OP_B_C_RB		0xB000
-#define OP_BL_C_RB		0xB008
-#define OP_IRET_RB		0xBF00
-#define OP_MOV_RB_SA		0xB002
-#define OP_MOV_SA_RB		0xB003
-#define OP_SET			0xB004
-#define OP_CLR			0xB005
-#define OP_SYSCALL		0xB006
-#define OP_BREAK		0xB007
-#define OP_B_S12		0xC000
-#define OP_BL_S12		0xD000
-#define OP_MOV_XA_RB		0xE000
-#define OP_MOV_RA_XB		0xE001
-#define OP_UNKNONW		0xF000
+#define OP_MOV_RA_S8		0x0000
+#define OP_MHI_RA_S8		0x0001
+#define OP_ALU_RA_RA_RB		0x0002
+#define OP_ALU_RA_RA_S4		0x0003
+#define OP_ALU_R0_RA_RB		0x0004
+#define OP_ALU_R1_RA_RB		0x0005
+#define OP_ALU_R2_RA_RB		0x0006
+#define OP_ALU_R3_RA_RB		0x0007
+#define OP_LW_RB_S4		0x0008
+#define OP_SW_RB_S4		0x0009
+#define OP_BNZ_RA_S8		0x000A
+#define OP_BZ_RA_S8		0x000B
+#define OP_B_S12		0x000C
+#define OP_BL_S12		0x000D
+#define OP_B_RB			0x000E
+#define OP_BL_RB		0x100E
+#define OP_NOP			0x200E
 
 #define ALU_MOV 0
 #define ALU_AND 1
@@ -533,13 +472,12 @@ void assemble_line(int n, unsigned *tok, unsigned *num, char **str) {
 		/* blank lines are fine */
 		return;
 	case tNOP:
-		/* MOV r0, r0, r0 */
-		emit(0);
+		emit(OP_NOP);
 		return;
 	case tNOT:
 		/* XOR rX, rX, -1 */
 		expect_register(T1);
-		emit(OP_ALU_RA_RA_S4 | _A(to_reg(T1)) | _I4ALU(-1) | ALU_XOR);
+		emit(OP_ALU_RA_RA_S4 | _A(to_reg(T1)) | _I4(-1) | ALU_XOR);
 		return;
 	case tMOV:
 		expect_register(T1);
@@ -553,9 +491,18 @@ void assemble_line(int n, unsigned *tok, unsigned *num, char **str) {
 		if (is_signed8(num[4])) {
 			emit(OP_MOV_RA_S8 | _A(to_reg(T1)) | _I8(num[4]));
 			return;
+		} else {
+			emit(OP_MOV_RA_S8 | _A(to_reg(T1)) | _I8(num[4]));
+			emit(OP_MHI_RA_S8 | _A(to_reg(T1)) | _I8((num[4] >> 8)));
 		}
-		emit(OP_ALU_RB_RA_U16 | _B(to_reg(T1)) | ALU_MOV);
-		emit(num[4]);
+		return;
+	case tMHI:
+		expect_register(T1);
+		expect(tCOMMA, T2);
+		expect(tHASH, T3);
+		expect(tNUMBER, T4);
+		// range
+		emit(OP_MHI_RA_S8 | _A(to_reg(T1)) | _I8(num[4]));
 		return;
 	case tLW:
 	case tSW:
@@ -572,14 +519,50 @@ void assemble_line(int n, unsigned *tok, unsigned *num, char **str) {
 			expect(tCBRACK, T5);
 			tmp = 0;
 		}
-		if (!is_signed8(tmp)) die("index too large");
-		emit(instr | _A(to_reg(T1)) | _B(to_reg(T4)) | _I4MEM(tmp));
+		if (!is_signed4(tmp)) die("index too large");
+		emit(instr | _A(to_reg(T1)) | _B(to_reg(T4)) | _I4(tmp));
+		return;
+	case tB:
+	case tBL:
+		if (is_reg(T1)) {
+			instr = (T0 == tB) ? OP_B_RB : OP_BL_RB;
+			emit(instr | _B(to_reg(T1)));
+		} else {
+			instr = (T0 == tB) ? OP_B_S12 : OP_BL_S12;
+			if (T1 == tSTRING) {
+				emit(instr);
+				uselabel(str[1], PC - 1, TYPE_PCREL_S12);
+			} else if (T1 == tDOT) {
+				emit(instr | _I12(-1));
+			} else {
+				die("expected register or address");
+			}
+		}
+		return;
+	case tBZ:
+	case tBNZ:
+		instr = (T0 == tBZ) ? OP_BZ_RA_S8 : OP_BNZ_RA_S8;
+		expect_register(T1);
+		expect(tCOMMA, T2);
+		if (T3 == tSTRING) {
+			emit(instr | _A(to_reg(T1)));
+			uselabel(str[3], PC - 1, TYPE_PCREL_S8);
+		} else if (T3 == tDOT) {
+			emit(instr | _A(to_reg(T1)) | _I12(-1));
+		} else {
+			die("expected register or address");
+		}
 		return;
 	case tWORD:
 		tmp = 1;
 		for (;;) {
-			expect(tNUMBER, tok[tmp]);
-			emit(num[tmp++]);
+			if (tok[tmp] == tSTRING) {
+				emit(0);
+				uselabel(str[tmp++], PC - 1, TYPE_ABS_U16);
+			} else {
+				expect(tNUMBER, tok[tmp]);
+				emit(num[tmp++]);
+			}
 			if (tok[tmp] != tCOMMA)
 				break;
 			tmp++;
@@ -603,41 +586,25 @@ void assemble_line(int n, unsigned *tok, unsigned *num, char **str) {
 		return;
 	}
 	}
-	if (is_branch(T0)) {
-		unsigned cc = to_cc(T0);
-		int link = is_branch_link(T0);
-		if (is_reg(T1)) {
-			emit((link ? OP_BL_C_RB : OP_B_C_RB) | _B(to_reg(T1)) | _C(cc));
-		} else if (T1 == tSTRING) {
-			if (cc == COND_AL) {
-				emit(link ? OP_BL_S12 : OP_B_S12);
-				uselabel(str[1], PC - 1, TYPE_PCREL_S12);
-			} else {
-				if (link) die("conditional, relative, linked branches unsupported");
-				emit(OP_B_C_S8 | _C(cc));
-				uselabel(str[1], PC - 1, TYPE_PCREL_S8);
-			}
-		} else if (T1 == tDOT) {
-			if (link) die("nope");
-			emit(OP_B_C_S8 | _C(cc) | _I8(-1));
-		}
-		return;
-	}
 	if (is_alu_op(T0)) {
 		expect_register(T1);
 		expect(T2, tCOMMA);
 		expect_register(T3);
 		expect(T4, tCOMMA);
 		if ((T5 == tHASH) && (T6 == tNUMBER)) {
-			if (is_signed4(num[6]) && (T1 == T3)) {
-				emit(OP_ALU_RA_RA_S4 | _A(to_reg(T1)) | _F(to_func(T0)) | _I4ALU(num[6]));
-				return;
+			if (T1 != T3) {
+				die("both registers must be the same in this form");
 			}
-			emit(OP_ALU_RB_RA_U16 | _B(to_reg(T1)) | _A(to_reg(T3)) | _F(to_func(T0)));
-			emit(num[6]);
+			if (is_signed4(num[6])) {
+				emit(OP_ALU_RA_RA_S4 | _A(to_reg(T1)) | _FLO(to_func(T0)) | _I4(num[6]));
+				return;
+			} else {
+				// auto use R15 as scratch?
+				die("immediate out of range (s4)");
+			}
 		} else if (is_reg(T5)) {
 			if (T1 == T3) {
-				emit(OP_ALU_RA_RA_RB | _A(to_reg(T1)) | _B(to_reg(T5)) | _F(to_func(T0)));
+				emit(OP_ALU_RA_RA_RB | _A(to_reg(T1)) | _B(to_reg(T5)) | _FHI(to_func(T0)));
 				return;
 			} 
 			switch (T1) {
@@ -648,7 +615,7 @@ void assemble_line(int n, unsigned *tok, unsigned *num, char **str) {
 			default:
 				die("three-reg ALU ops require R0-R3 for the first register");
 			}
-			emit(instr | _A(to_reg(T3)) | _B(to_reg(T5)) | _F(to_func(T0)));
+			emit(instr | _A(to_reg(T3)) | _B(to_reg(T5)) | _FHI(to_func(T0)));
 		} else {
 			die("expected register or #, got %s", tnames[tok[5]]);
 		}

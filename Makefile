@@ -7,7 +7,7 @@ VERILATOR := VERILATOR_ROOT=/work/verilator /work/verilator/bin/verilator
 
 VOPTS := --top-module testbench --Mdir out --exe ../src/testbench.cpp --cc -CFLAGS -DTRACE --trace
 
-all: out/Vtestbench out/a16
+all: out/Vtestbench out/a16 out/d16
 
 out/Vtestbench: $(SRCS) src/testbench.cpp
 	@mkdir -p out
@@ -17,7 +17,7 @@ out/Vtestbench: $(SRCS) src/testbench.cpp
 run: out/Vtestbench out/test.hex
 	./out/Vtestbench -trace out/trace.vcd -dump out/memory.bin -load out/test.hex
 
-out/test.hex: src/test.s out/a16
+out/test.hex: src/test.s out/a16 out/d16
 	out/a16 src/test.s out/test.hex
 
 #out/test.hex: test.hex
@@ -25,11 +25,11 @@ out/test.hex: src/test.s out/a16
 
 out/a16: src/a16.c src/d16.c
 	@mkdir -p out
-	gcc -Wall -O1 -o out/a16 src/a16.c src/d16.c
+	gcc -g -Wall -O1 -o out/a16 src/a16.c src/d16.c
 
 out/d16: src/d16.c
 	@mkdir -p out
-	gcc -Wall -O1 -o out/d16 -DSTANDALONE=1 src/d16.c
+	gcc -g -Wall -O1 -o out/d16 -DSTANDALONE=1 src/d16.c
 
 clean:
 	rm -rf out/

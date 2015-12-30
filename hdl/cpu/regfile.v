@@ -9,7 +9,10 @@
 // enough" behavior (since the path from regfile -> exec stage
 // register is pretty short)
 
-module regfile(
+module regfile #(
+	parameter AWIDTH = 4,
+	parameter DWIDTH = 16
+	)(
 	input clk,
 	input [AWIDTH-1:0]asel,
 	input [AWIDTH-1:0]bsel,
@@ -20,23 +23,26 @@ module regfile(
 	input [DWIDTH-1:0]wdata
 	);
 
-parameter AWIDTH = 4;
-parameter DWIDTH = 16;
-
 reg [DWIDTH-1:0] R[0:((1<<AWIDTH)-1)];
 
 always @(posedge clk) begin
 	if (wreg)
 		R[wsel] <= wdata;
+//	adata <= R[asel];
+//	bdata <= R[bsel];
 end
+assign adata = R[asel];
+assign bdata = R[bsel];
+/*
 `ifdef NEGSYNC
 always @(negedge clk) begin
 	adata = R[asel];
 	bdata = R[bsel];
 end
 `else
-assign adata = R[asel];
-assign bdata = R[bsel];
+`ifndef SYNC
 `endif
+`endif
+*/
 
 endmodule

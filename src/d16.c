@@ -25,29 +25,26 @@ char *append_int(char *buf, int n) {
 	return buf + strlen(buf);
 }
 
-const char *condcode[] = {
-	"EQ", "NE", "CS", "CC", "MI", "PL", "VS", "VC",
-	"HI", "LS", "GE", "LT", "GT", "LE", "", "NV",
-};
-
 const char *regname[] = {
 	"R0", "R1", "R2", "R3", "R4", "R5", "R6", "R7",
-	"R8", "R9", "R10", "R11", "R12", "R13", "R14", "R15"
+	"R8", "R9", "R10", "R11", "R12", "SP", "LR", "R15",
 };
 
 const char *alufunc[] = {
 	"MOV", "AND", "ORR", "XOR", "ADD", "SUB", "SHR", "SHL",
 };
 
-int printinst(char *buf, unsigned pc, unsigned instr, unsigned next, const char *fmt) {
-	int words = 1;
-	unsigned a = (instr >> 8) & 15;
-	unsigned b = (instr >> 4) & 15;
-	unsigned f = (instr >> 0) & 15;
-	int s4alu = (b & 0x8) ? (b | 0xFFFFFFF0) : (b & 0xF);
-	int s4mem = (instr & 0x8) ? (instr | 0xFFFFFFF0) : (instr & 0xF);
-	int s8 = (instr & 0x80) ? (instr | 0xFFFFFF00) : (instr & 0xFF);
-	int s12 = (instr & 0x800) ? (instr | 0xFFFF800) : (instr & 0xFFF);
+void printinst(char *buf, unsigned pc, unsigned instr, const char *fmt) {
+	unsigned a = (instr >> 4) & 15;
+	unsigned b = (instr >> 8) & 15;
+	unsigned fhi = (instr >> 12) & 15;
+	unsigned flo = (instr >> 8) & 15;
+	unsigned i8 = (instr >> 8);
+	unsigned i4 = (instr >> 12);
+	unsigned i12 = (instr >> 4);
+	int s4 = (i4 & 0x8) ? (i4 | 0xFFFFFFF0) : (i4 & 0xF);
+	int s8 = (i8 & 0x80) ? (i8 | 0xFFFFFF00) : (i8 & 0xFF);
+	int s12 = (i12 & 0x800) ? (i12 | 0xFFFFF800) : (i12 & 0xFFF);
 
 	while (*fmt) {
 		if (*fmt != '@') {
@@ -62,30 +59,22 @@ int printinst(char *buf, unsigned pc, unsigned instr, unsigned next, const char 
 			buf = append(buf, regname[b]);
 			break;
 		case 'C':
-			buf = append(buf, condcode[a]);
+			buf = append(buf, regname[instr & 3]);
 			break;
 		case 'F':
-			buf = append(buf, alufunc[f]);
+			buf = append(buf, alufunc[fhi]);
 			break;
 		case 'f': // alt alu func
-			buf = append(buf, alufunc[b]);
-			break;
-		case 'i':
-			buf = append_int(buf, s4alu);
+			buf = append(buf, alufunc[flo]);
 			break;
 		case '4':
-			buf = append_int(buf, s4mem);
+			buf = append_int(buf, s4);
 			break;
 		case '8':
 			buf = append_int(buf, s8);
 			break;
 		case 's':
 			buf = append_int(buf, s12);
-			break;
-		case 'U':
-			words = 2;
-			buf = append(buf, "0x");
-			buf = append_u16(buf, next);
 			break;
 		case 0:
 			goto done;
@@ -94,7 +83,6 @@ int printinst(char *buf, unsigned pc, unsigned instr, unsigned next, const char 
 	}
 done:
 	*buf = 0;
-	return words;
 }
 
 struct {
@@ -102,41 +90,48 @@ struct {
 	u16 value;
 	const char *fmt;
 } decode[] = {
-	{ 0b1111111111111111, 0b0000000000000000, "NOP" },
-	{ 0b1111000000001111, 0b0000000000000000, "MOV @A, @B" },
-	{ 0b1111000000000000, 0b0000000000000000, "@F @A, @A, @B" },
-	{ 0b1111000000000000, 0b0001000000000000, "MOV @A, #@8" },
-	{ 0b1111000000001111, 0b0010000000000000, "MOV @A, #@i" },
-	{ 0b1111000000000000, 0b0010000000000000, "@F @A, @A, #@i" },
-	{ 0b1111000000001111, 0b0011000000000000, "MOV @B, #@U" },
-	{ 0b1111000000000000, 0b0011000000000000, "@F @B, @A, #@U" },
-	{ 0b1111000000001111, 0b0100000000000000, "MOV R0, @B" },
-	{ 0b1111000000000000, 0b0100000000000000, "@F R0, @A, @B" },
-	{ 0b1111000000001111, 0b0101000000000000, "MOV R1, @B" },
-	{ 0b1111000000000000, 0b0101000000000000, "@F R1, @A, @B" },
-	{ 0b1111000000001111, 0b0110000000000000, "MOV R2, @B" },
-	{ 0b1111000000000000, 0b0110000000000000, "@F R2, @A, @B" },
-	{ 0b1111000000001111, 0b0111000000000000, "MOV R3, @B" },
-	{ 0b1111000000000000, 0b0111000000000000, "@F R3, @A, @B" },
-	{ 0b1111000000001111, 0b1000000000000000, "LW @A, [@B]" },
-	{ 0b1111000000000000, 0b1000000000000000, "LW @A, [@B, @4]" },
-	{ 0b1111000000001111, 0b1001000000000000, "SW @A, [@B]" },
-	{ 0b1111000000000000, 0b1001000000000000, "SW @A, [@B, @4]" },
-	{ 0b1111000000000000, 0b1010000000000000, "B@C @8" },
-	{ 0b1111000000001000, 0b1011000000000000, "B@C @B" },
-	{ 0b1111000000001000, 0b1011000000001000, "BL@C @B" },
-	{ 0b1111000000000000, 0b1100000000000000, "B @s" },
-	{ 0b1111000000000000, 0b1101000000000000, "BL @s" },
+	{ 0b0000000000001111, 0b0000000000000000, "MOV @A, @8" },
+	{ 0b0000000000001111, 0b0000000000000001, "MHI @A, @8" },
+	{ 0b1111000000001111, 0b0000000000000010, "MOV @A, @B" },
+	{ 0b0000000000001111, 0b0000000000000010, "@F @A, @B" },
+	{ 0b0000111100001111, 0b0000000000000011, "MOV @A, @4" },
+	{ 0b0000000000001111, 0b0000000000000011, "@f @A, @4" },
+	{ 0b1111000000001100, 0b0000000000000100, "MOV @C, @B" },
+	{ 0b0000000000001100, 0b0000000000000100, "@F @C, @B, @A" },
+	{ 0b0000000000001111, 0b0000000000001000, "LW @A, [@B, @4]" },
+	{ 0b0000000000001111, 0b0000000000001001, "SW @A, [@B, @4]" },
+	{ 0b0000000000001111, 0b0000000000001010, "BNZ @A, @8" },
+	{ 0b0000000000001111, 0b0000000000001011, "BZ @A, @8" },
+	{ 0b0000000000001111, 0b0000000000001100, "B @s" },
+	{ 0b0000000000001111, 0b0000000000001101, "BL @s" },
+	{ 0b1111000000001111, 0b0000000000001110, "B @B" },
+	{ 0b1111000000001111, 0b0001000000001110, "BL @B" },
+	{ 0b1111000000001111, 0b0010000000001110, "NOP" },
 	{ 0b0000000000000000, 0b0000000000000000, "UNDEFINED" },
 };
 
-int disassemble(char *buf, unsigned pc, unsigned instr, unsigned next) {
+void disassemble(char *buf, unsigned pc, unsigned instr) {
 	int n = 0;
 	for (n = 0 ;; n++) {
 		if ((instr & decode[n].mask) == decode[n].value) {
-			return printinst(buf, pc, instr, next, decode[n].fmt);
+			printinst(buf, pc, instr, decode[n].fmt);
+			return;
 		}
 	}
-	return 1;
+	buf[0] = 0;
 }
 
+#ifdef STANDALONE
+int main(int argc, char **argv) {
+        char buf[256];
+        char line[1024];
+        while (fgets(line, 1024, stdin)) {
+                unsigned insn = 0xFFFF;
+                sscanf(line, "%x", &insn);
+                disassemble(buf, 0, insn);
+                printf("%s\n", buf);
+                fflush(stdout);
+        }
+        return 0;
+}
+#endif
