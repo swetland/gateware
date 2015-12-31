@@ -52,7 +52,8 @@ cpu
 	.mem_waddr_o(waddr),
 	.mem_wdata_o(wdata),
 	.mem_wr_o(wr),
-	.mem_rd_o(rd)
+	.mem_rd_o(rd),
+	.reset(1'b0)
 	);
 
 endmodule
