@@ -8,6 +8,11 @@ module cpu #(
 	parameter SWIDTH = 4
 	)(
 	input clk,
+`ifdef WITH_DEBUG
+	output [RWIDTH-1:0]debug_data
+	output [3:0]debug_op,
+	output debug_wr,
+`endif
 	output [15:0]mem_raddr_o,
 	input [15:0]mem_rdata_i,
 	output [15:0]mem_waddr_o,
@@ -195,6 +200,12 @@ localparam USE_NONE =  2'b00;
 reg [1:0]using;
 wire conflict_a = (wsel == ir_asel) & using[1];
 wire conflict_b = (wsel == ir_bsel) & using[0];
+
+`ifdef WITH_DEBUG
+assign debug_op = ir_bsel;
+assign debug_data = regs_adata;
+assign debug_wr = do_fetch & ir_valid & (ir[15:12] == 4'b0010) & (ir[3:0] == 4'b1110);
+`endif
 
 always @(*) begin
 	// decode stage
