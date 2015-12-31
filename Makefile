@@ -7,7 +7,7 @@ VERILATOR := VERILATOR_ROOT=/work/verilator /work/verilator/bin/verilator
 
 VOPTS := --top-module testbench --Mdir out --exe ../src/testbench.cpp --cc -CFLAGS -DTRACE --trace
 
-all: out/Vtestbench out/a16 out/d16
+all: out/Vtestbench out/a16 out/d16 out/icetool
 
 out/Vtestbench: $(SRCS) src/testbench.cpp
 	@mkdir -p out
@@ -30,6 +30,10 @@ out/a16: src/a16.c src/d16.c
 out/d16: src/d16.c
 	@mkdir -p out
 	gcc -g -Wall -O1 -o out/d16 -DSTANDALONE=1 src/d16.c
+
+out/icetool: src/icetool.c src/ftdi.c src/ftdi.h
+	@mkdir -p out
+	gcc -g -Wall -O1 -o out/icetool src/icetool.c src/ftdi.c -lusb-1.0 -lrt
 
 TEST_DEPS := out/Vtestbench out/a16 out/d16 tests/runtest
 
