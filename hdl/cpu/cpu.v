@@ -18,7 +18,8 @@ module cpu #(
 	output [15:0]mem_waddr_o,
 	output [15:0]mem_wdata_o,
 	output mem_wr_o,
-	output mem_rd_o
+	output mem_rd_o,
+	input reset
 	);
 
 localparam AWIDTH = 16;
@@ -139,9 +140,15 @@ always @(*) begin
 end
 
 always @(posedge clk) begin
-	pc <= do_load_pc ? pc_next : pc;
-	ir_valid <= ir_valid_next;
-	ir_loading <= ir_loading_next;
+	if (reset) begin
+		pc <= 16'd0;
+		ir_valid <= 1'd0;
+		ir_loading <= 1'd0;
+	end else begin
+		pc <= do_load_pc ? pc_next : pc;
+		ir_valid <= ir_valid_next;
+		ir_loading <= ir_loading_next;
+	end
 	ir <= ir_next;
 end
 
