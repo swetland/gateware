@@ -128,8 +128,11 @@ always @(*) begin
 	`SLATCH: begin
 		next_state = `SWAIT;
 		next_addr = vram_addr + 11'd1;
-		next_cdata = pattern_rom[{vram_data, pline}];
+		next_cdata = pattern_rom[{vram_data[6:0], pline}];
 		end
+	default: begin
+		next_state = `SWAIT;
+	end
 	endcase
 end
 

@@ -10,6 +10,10 @@ output PLLOUTCORE;
 output PLLOUTGLOBAL;
 output LOCK;
 
+`ifdef verilator
+assign PLLOUTCORE = REFERENCECLK;
+assign PLLOUTGLOBAL = REFERENCECLK;
+`else
 SB_PLL40_CORE pll_12_25_inst(.REFERENCECLK(REFERENCECLK),
                              .PLLOUTCORE(PLLOUTCORE),
                              .PLLOUTGLOBAL(PLLOUTGLOBAL),
@@ -36,5 +40,6 @@ defparam pll_12_25_inst.FDA_RELATIVE = 4'b0000;
 defparam pll_12_25_inst.SHIFTREG_DIV_MODE = 2'b00;
 defparam pll_12_25_inst.PLLOUT_SELECT = "GENCLK";
 defparam pll_12_25_inst.ENABLE_ICEGATE = 1'b0;
+`endif
 
 endmodule

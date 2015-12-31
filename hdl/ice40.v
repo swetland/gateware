@@ -20,6 +20,8 @@ module top(
 
 wire clk25m;
 
+wire sys_clk = clk12m;
+
 wire [15:0]cpu_waddr /* synthesis syn_keep=1 */;
 wire [15:0]cpu_wdata /* synthesis syn_keep=1 */;
 wire cpu_we /* synthesis syn_keep=1 */;
@@ -33,7 +35,7 @@ cpu #(
 	.RWIDTH(16),
 	.SWIDTH(4)
 	)cpu0(
-	.clk(clk25m),
+	.clk(sys_clk),
 	.mem_waddr_o(cpu_waddr),
 	.mem_wdata_o(cpu_wdata),
 	.mem_wr_o(cpu_we),
@@ -52,7 +54,7 @@ spi_debug_ifc sdi(
 	.spi_cs_i(spi_cs),
 	.spi_data_i(spi_mosi),
 	.spi_data_o(spi_miso),
-	.sys_clk(clk25m),
+	.sys_clk(sys_clk),
 	.sys_wr_o(dbg_we),
 	.sys_waddr_o(dbg_waddr),
 	.sys_wdata_o(dbg_wdata)
@@ -67,14 +69,16 @@ wire cs_sram = (waddr[15:12] == 4'h0);
 wire cs_vram = (waddr[15:12] == 4'h8);
 wire cs_ctrl = (waddr[15:12] == 4'hF);
 
-always @(posedge clk25m) begin
+always @(posedge sys_clk) begin
 	if (cs_ctrl & we) begin
 		cpu_reset <= wdata[0];
 	end
 end
 
-assign out1 = cpu_reset;
-assign out2 = cpu_raddr[0];
+//assign out1 = cpu_reset;
+//assign out2 = cpu_raddr[0];
+assign out1 = cpu_we;
+assign out2 = dbg_we;
 
 wire cs0r = ~cpu_raddr[8];
 wire cs1r = cpu_raddr[8];
@@ -87,7 +91,7 @@ wire [15:0]rdata1;
 assign cpu_rdata = cs0r ? rdata0 : rdata1;
 
 sram ram0(
-	.clk(clk25m),
+	.clk(sys_clk),
 	.raddr(cpu_raddr),
 	.rdata(rdata0),
 	.re(cpu_re & cs0r & cs_sram),
@@ -97,13 +101,13 @@ sram ram0(
 	);
 
 sram ram1(
-	.clk(clk25m),
+	.clk(sys_clk),
 	.raddr(cpu_raddr),
 	.rdata(rdata1),
-	.re(re & cs0r & cs_sram),
+	.re(cpu_re & cs1r & cs_sram),
 	.waddr(waddr),
 	.wdata(wdata),
-	.we(we & cs0w & cs_sram)
+	.we(we & cs1w & cs_sram)
 	);
 
 pll_12_25 pll0(
@@ -138,6 +142,17 @@ module sram(
 	input we
 	);
 
+`ifdef verilator
+reg [15:0]mem[255:0];
+reg [15:0]ra;
+always @(posedge clk) begin
+	if (we)
+		mem[waddr[7:0]] <= wdata;
+	if (re)
+		ra <= raddr;
+	rdata = mem[ra[7:0]];
+end
+`else
 SB_RAM256x16 sram_inst(
 	.RDATA(rdata),
 	.RADDR(raddr[7:0]),
@@ -151,5 +166,6 @@ SB_RAM256x16 sram_inst(
 	.WE(we),
 	.MASK()
 	);
+`endif
 
 endmodule
