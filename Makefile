@@ -3,7 +3,7 @@ SRCS := hdl/testbench.sv
 SRCS += hdl/simram.sv
 SRCS += hdl/cpu/cpu.v hdl/cpu/alu.v hdl/cpu/regfile.v
 
-VERILATOR := VERILATOR_ROOT=/work/verilator /work/verilator/bin/verilator
+VERILATOR := /work/verilator/bin/verilator
 
 VOPTS := --top-module testbench --Mdir out --exe ../src/testbench.cpp --cc -CFLAGS -DTRACE --trace
 

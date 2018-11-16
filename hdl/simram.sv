@@ -3,8 +3,8 @@
 
 `timescale 1ns / 1ps
 
-import "DPI-C" function void dpi_mem_write(integer addr, integer data);
-import "DPI-C" function void dpi_mem_read(integer addr, output integer data);
+import "DPI-C" function void dpi_mem_write(int addr, int data);
+import "DPI-C" function void dpi_mem_read(int addr, output int data);
 
 module simram(
 	input clk,
