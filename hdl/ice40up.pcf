@@ -1,0 +1,18 @@
+set_io clk12m_in 35
+
+set_io vga_r[0] 23
+set_io vga_g[0] 25
+set_io vga_r[1] 26
+set_io vga_g[1] 27
+set_io vga_b[1] 32
+set_io vga_b[0] 31
+set_io vga_hsync 34
+set_io vga_vsync 43
+
+set_io spi_miso 14
+set_io spi_mosi 17
+set_io spi_clk 15
+set_io spi_cs 16
+
+set_io out1 3
+set_io out2 4

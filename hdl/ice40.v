@@ -4,7 +4,7 @@
 `timescale 1ns / 1ps
 
 module top(
-	input clk12m,
+	input clk12m_in,
 	output [1:0]vga_r,
 	output [1:0]vga_g,
 	output [1:0]vga_b,
@@ -18,7 +18,16 @@ module top(
 	output out2
 	);
 
+wire clk12m;
 wire clk25m;
+
+pll_12_25 pll0(
+	.clk12m_in(clk12m_in),
+	.clk12m_out(clk12m),
+	.clk25m_out(clk25m),
+	.lock(),
+	.reset(1'b1)
+	);
 
 wire sys_clk = clk12m;
 
@@ -110,14 +119,6 @@ sram ram1(
 	.we(we & cs1w & cs_sram)
 	);
 
-pll_12_25 pll0(
-	.REFERENCECLK(clk12m),
-	.PLLOUTGLOBAL(clk25m),
-	.PLLOUTCORE(),
-	.LOCK(),
-	.RESET(1'b1)
-	);
-
 vga40x30x2 vga(
 	.clk25m(clk25m),
 	.red(vga_r),
@@ -142,7 +143,7 @@ module sram(
 	input we
 	);
 
-`ifdef verilator
+`ifndef uselatticeprim
 reg [15:0]mem[255:0];
 reg [15:0]ra;
 always @(posedge clk) begin
@@ -150,8 +151,8 @@ always @(posedge clk) begin
 		mem[waddr[7:0]] <= wdata;
 	if (re)
 		ra <= raddr;
-	rdata = mem[ra[7:0]];
 end
+assign rdata = mem[ra[7:0]];
 `else
 SB_RAM256x16 sram_inst(
 	.RDATA(rdata),

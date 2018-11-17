@@ -1,18 +1,42 @@
 
-SRCS := hdl/testbench.sv
-SRCS += hdl/simram.sv
-SRCS += hdl/cpu/cpu.v hdl/cpu/alu.v hdl/cpu/regfile.v
+CPU_SRCS := hdl/cpu/cpu.v hdl/cpu/alu.v hdl/cpu/regfile.v
 
-VERILATOR := /work/verilator/bin/verilator
+VGA_SRCS := hdl/vga/vga40x30x2.v hdl/vga/vga.v hdl/vga/videoram.v hdl/vga/chardata.v
+
+VSIM_SRCS := hdl/testbench.sv hdl/simram.sv $(CPU_SRCS)
+
+ICE40_SRCS := hdl/ice40.v hdl/spi_debug_ifc.v hdl/lattice/pll_12_25.v
+ICE40_SRCS += $(CPU_SRCS) $(VGA_SRCS)
+
+VERILATOR := verilator
+ARACHNEPNR := arachne-pnr
+YOSYS := yosys
+ICEPACK := icepack
 
 VOPTS := --top-module testbench --Mdir out --exe ../src/testbench.cpp --cc -CFLAGS -DTRACE --trace
 
-all: out/Vtestbench out/a16 out/d16 out/icetool
+all: out/Vtestbench out/ice40.bin out/a16 out/d16 out/icetool
 
-out/Vtestbench: $(SRCS) src/testbench.cpp
+out/Vtestbench: $(VSIM_SRCS) src/testbench.cpp
 	@mkdir -p out
-	@$(VERILATOR) $(VOPTS) $(SRCS)
+	@$(VERILATOR) $(VOPTS) $(VSIM_SRCS)
 	@make -C out -f Vtestbench.mk
+
+out/ice40.bin: out/ice40.asc
+	@mkdir -p out
+	$(ICEPACK) $< $@
+
+out/ice40.lint: $(ICE40_SRCS)
+	@mkdir -p out
+	$(VERILATOR) --top-module top --lint-only $(ICE40_SRCS)
+
+out/ice40.blif: $(ICE40_SRCS) out/ice40.lint
+	@mkdir -p out
+	$(YOSYS) -p 'synth_ice40 -top top -blif out/ice40.blif' $(ICE40_SRCS) 2>&1 | tee out/ice40.synth.log
+
+out/ice40.asc: out/ice40.blif
+	@mkdir -p out
+	$(ARACHNEPNR) -d 5k -p sg48 -o out/ice40.asc -p hdl/ice40up.pcf out/ice40.blif 2>&1 | tee out/ice40.pnr.log
 
 run: out/Vtestbench out/test.hex
 	./out/Vtestbench -trace out/trace.vcd -dump out/memory.bin -load out/test.hex
