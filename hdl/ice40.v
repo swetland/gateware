@@ -128,7 +128,8 @@ vga40x30x2 vga(
 	.vs(vga_vsync),
 	.vram_waddr(waddr[10:0]),
 	.vram_wdata(wdata[7:0]),
-	.vram_we(we & cs_vram)
+	.vram_we(we & cs_vram),
+	.vram_clk(sys_clk)
 	);
 
 endmodule

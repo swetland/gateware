@@ -6,6 +6,7 @@ module vga40x30x2(
 	output [1:0]blu,
 	output hs,
 	output vs,
+	input vram_clk,
 	input [10:0]vram_waddr,
 	input [7:0]vram_wdata,
 	input vram_we
@@ -51,9 +52,11 @@ pixeldata pixeldata0(
 	);
 
 videoram #(8,11) vram(
-        .clk(clk25m),
+        .rclk(clk25m),
+	.re(1'b1),
         .rdata(vram_rdata),
         .raddr(vram_raddr),
+	.wclk(vram_clk),
         .we(vram_we),
         .wdata(vram_wdata[7:0]),
         .waddr(vram_waddr[10:0])
