@@ -102,8 +102,16 @@ int main(int argc, char **argv) {
 		argv += 3;
 		n = 0;
 		while (argc > 0) {
-			if (n == 2048) return 1;
-			data[1 + n++] = strtoul(argv[0], 0, 16);
+			if (argv[0][0] == '/') {
+				char *s = argv[0] + 1;
+				while (*s != 0) {
+					if (n == 2048) return 1;
+					data[1 + n++] = *s++;
+				}
+			} else {
+				if (n == 2048) return 1;
+				data[1 + n++] = strtoul(argv[0], 0, 16);
+			}
 			argc--;
 			argv++;
 		}
