@@ -119,11 +119,13 @@ sram ram1(
 	.we(we & cs1w & cs_sram)
 	);
 
+wire [1:0]vr, vg, vb;
+
 vga40x30x2 vga(
 	.clk25m(clk25m),
-	.red(vga_r),
-	.grn(vga_g),
-	.blu(vga_b),
+	.red(vr),
+	.grn(vg),
+	.blu(vb),
 	.hs(vga_hsync),
 	.vs(vga_vsync),
 	.vram_waddr(waddr[10:0]),
@@ -131,6 +133,11 @@ vga40x30x2 vga(
 	.vram_we(we & cs_vram),
 	.vram_clk(sys_clk)
 	);
+
+// hack: flip display from blue to red when CPU is held in reset
+assign vga_r = cpu_reset ? vb : vr;
+assign vga_g = vg;
+assign vga_b = cpu_reset ? vr : vb;
 
 endmodule
 
