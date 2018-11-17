@@ -38,7 +38,7 @@ chardata chardata(
 
 reg [7:0] cdata, next_cdata;
 reg [3:0] bitcount, next_bitcount;
-reg [1:0] state, next_state;
+reg [1:0] state = 2'h0, next_state;
 
 always @(*) begin
 	next_bitcount = bitcount;
@@ -102,7 +102,7 @@ module chardata(
 reg [7:0] pattern_rom [0:1023];
 reg [2:0] pline, next_pline;
 
-reg [1:0] state, next_state;
+reg [1:0] state = `SWAIT, next_state;
 reg [10:0] next_addr;
 reg [7:0] next_cdata;
 
