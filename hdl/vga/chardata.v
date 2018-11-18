@@ -106,7 +106,11 @@ reg [1:0] state = `SWAIT, next_state;
 reg [10:0] next_addr;
 reg [7:0] next_cdata;
 
+`ifdef HEX_PATHS
+initial $readmemh("hdl/vga/prom.txt", pattern_rom);
+`else
 initial $readmemh("prom.txt", pattern_rom);
+`endif
 
 always @(*) begin
 	next_state = state;

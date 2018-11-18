@@ -15,7 +15,11 @@ module videoram #(parameter DWIDTH=16, parameter AWIDTH=8) (
 
 reg [DWIDTH-1:0] mem[0:2**AWIDTH-1];
 
+`ifdef HEX_PATHS
+initial $readmemh("hdl/vga/vram.txt", mem);
+`else
 initial $readmemh("vram.txt", mem);
+`endif
 
 always @(posedge wclk) begin
 	if (we)

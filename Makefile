@@ -29,10 +29,18 @@ out/ice40.bin: out/ice40.asc
 out/ice40.lint: $(ICE40_SRCS)
 	@mkdir -p out
 	$(VERILATOR) --top-module top --lint-only $(ICE40_SRCS)
+	@touch out/ice40.lint
 
-out/ice40.blif: $(ICE40_SRCS) out/ice40.lint
+out/ice40.ys: $(ICE40_SRCS)
 	@mkdir -p out
-	$(YOSYS) -p 'synth_ice40 -top top -blif out/ice40.blif' $(ICE40_SRCS) 2>&1 | tee out/ice40.synth.log
+	@echo generating $@
+	@echo verilog_defines -DHEX_PATHS > $@
+	@for src in $(ICE40_SRCS) ; do echo read_verilog $$src ; done >> $@
+	@echo synth_ice40 -top top -blif out/ice40.blif >> $@
+
+out/ice40.blif: out/ice40.ys out/ice40.lint
+	@mkdir -p out
+	$(YOSYS) -s out/ice40.ys 2>&1 | tee out/ice40.synth.log
 
 out/ice40.asc: out/ice40.blif
 	@mkdir -p out
