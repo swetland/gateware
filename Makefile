@@ -31,11 +31,11 @@ out/ice40.lint: $(ICE40_SRCS)
 	$(VERILATOR) --top-module top --lint-only $(ICE40_SRCS)
 	@touch out/ice40.lint
 
-out/ice40.ys: $(ICE40_SRCS)
+out/ice40.ys: $(ICE40_SRCS) Makefile
 	@mkdir -p out
 	@echo generating $@
 	@echo verilog_defines -DHEX_PATHS > $@
-	@for src in $(ICE40_SRCS) ; do echo read_verilog $$src ; done >> $@
+	@for src in $(ICE40_SRCS) ; do echo read_verilog -sv $$src ; done >> $@
 	@echo synth_ice40 -top top -blif out/ice40.blif >> $@
 
 out/ice40.blif: out/ice40.ys out/ice40.lint
@@ -69,7 +69,7 @@ out/icetool: src/icetool.c src/ftdi.c src/ftdi.h
 
 TEST_DEPS := out/Vtestbench out/a16 out/d16 tests/runtest
 
-TESTS := $(wildcard tests/*.s)
+TESTS := $(sort $(wildcard tests/*.s))
 
 RESULTS := $(patsubst %.s,out/%.s.status,$(TESTS))
 

@@ -102,7 +102,7 @@ wire [AWIDTH-1:0]pc_next = exe_branch ? branch_target : (pc + 16'd1);
 
 reg do_load_pc;
 
-always @(*) begin
+always_comb begin
 	ir_next = ir;
 	ir_valid_next = ir_valid;
 	ir_loading_next = ir_loading;
@@ -139,7 +139,7 @@ always @(*) begin
 	end
 end
 
-always @(posedge clk) begin
+always_ff @(posedge clk) begin
 	if (reset) begin
 		pc <= 16'd0;
 		ir_valid <= 1'd0;
@@ -157,7 +157,7 @@ localparam BDATA_PC = 2'b01;
 localparam BDATA_S4 = 2'b10; 
 localparam BDATA_S8 = 2'b11;
 reg [RWIDTH-1:0]bdata_mux;
-always @(*) begin
+always_comb begin
 	case (do_sel_bdata)
 	BDATA_RB: bdata_mux = regs_bdata;
 	BDATA_PC: bdata_mux = pc;
@@ -171,7 +171,7 @@ localparam WSEL_RB = 2'b01;
 localparam WSEL_OP = 2'b10;
 localparam WSEL_LR = 2'b11;
 reg [3:0]wsel_mux;
-always @(*) begin
+always_comb begin
 	case (do_sel_wsel)
 	WSEL_RA: wsel_mux = ir[7:4];
 	WSEL_RB: wsel_mux = ir[11:8];
@@ -185,7 +185,7 @@ localparam ALU_MHI = 2'b01;
 localparam ALU_FN_HI = 2'b10;
 localparam ALU_FN_LO = 2'b11;
 reg [3:0]alu_op_mux;
-always @(*) begin
+always_comb begin
 	case (do_sel_alu_op)
 	ALU_MOV:   alu_op_mux = 4'b0000;
 	ALU_MHI:   alu_op_mux = 4'b0111;
@@ -214,7 +214,7 @@ assign debug_data = regs_adata;
 assign debug_wr = do_fetch & ir_valid & (ir[15:12] == 4'b0010) & (ir[3:0] == 4'b1110);
 `endif
 
-always @(*) begin
+always_comb begin
 	// decode stage
 	do_fetch =       1'b1;
 	do_load =        1'b0;
@@ -327,7 +327,7 @@ always @(*) begin
 	endcase
 end
 
-always @(posedge clk) begin
+always_ff @(posedge clk) begin
 	alu_op <= alu_op_mux;
 	adata <= regs_adata;
 	bdata <= bdata_mux;
