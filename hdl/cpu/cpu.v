@@ -38,6 +38,7 @@ reg [1:0]do_sel_alu_op;
 reg do_exe_alu;
 reg do_exe_load;
 reg do_exe_branch;
+reg do_load_pc;
 
 // processor registers
 reg [AWIDTH-1:0]pc = 16'b0;
@@ -45,6 +46,7 @@ reg [15:0]ir = 16'b0;
 reg ir_valid = 1'b0;
 reg ir_loading = 1'b0;
 
+reg [AWIDTH-1:0]pc_next;
 reg [15:0]ir_next;
 reg ir_valid_next;
 reg ir_loading_next;
@@ -79,7 +81,7 @@ wire [RWIDTH-1:0]regs_bdata;
 
 wire [RWIDTH-1:0]load_store_addr = regs_bdata + ir_imm_s4;
 
-wire [AWIDTH-1:0]inst_addr = do_load_pc ? pc_next : pc;
+wire [AWIDTH-1:0]new_pc = exe_branch ? branch_target : (pc + 16'd1);
 
 reg [AWIDTH-1:0]branch_target;
 
@@ -94,13 +96,9 @@ wire [AWIDTH-1:0]branch_target_next = branch_tgt[AWIDTH-1:0];
 // memory interface
 assign mem_wr_o = do_store;
 assign mem_rd_o = 1;
-assign mem_raddr_o = do_load ? load_store_addr[AWIDTH-1:0] : inst_addr;
+assign mem_raddr_o = do_load ? load_store_addr[AWIDTH-1:0] : pc_next;
 assign mem_waddr_o = load_store_addr[AWIDTH-1:0];
 assign mem_wdata_o = regs_adata[AWIDTH-1:0];
-
-wire [AWIDTH-1:0]pc_next = exe_branch ? branch_target : (pc + 16'd1);
-
-reg do_load_pc;
 
 always_comb begin
 	ir_next = ir;
@@ -137,7 +135,18 @@ always_comb begin
 			ir_valid_next = 1'b0;
 		end
 	end
+
+	pc_next = do_load_pc ? new_pc : pc;
 end
+
+/*
+always_ff @(posedge clk) begin
+	pc <= reset ? 16'd0 : pc_next;
+	ir_valid <= reset ? 1'd0 : ir_valid_next;
+	ir_loading <= reset ? 1'd0 : ir_loading_next;
+	ir <= ir_next;
+end
+*/
 
 always_ff @(posedge clk) begin
 	if (reset) begin
@@ -145,7 +154,7 @@ always_ff @(posedge clk) begin
 		ir_valid <= 1'd0;
 		ir_loading <= 1'd0;
 	end else begin
-		pc <= do_load_pc ? pc_next : pc;
+		pc <= pc_next;
 		ir_valid <= ir_valid_next;
 		ir_loading <= ir_loading_next;
 	end
