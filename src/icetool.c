@@ -77,7 +77,14 @@ int main(int argc, char **argv) {
 	u16 data[2049];
 	int n;
 	FTDI *d;
+	int do_cls = 0;
 
+	if (argc == 2) {
+		if (!strcmp(argv[1], "-cls")) {
+			do_cls = 1;
+			goto doit;
+		}
+	}
 	if (argc < 4) {
 		usage();
 	}
@@ -118,8 +125,7 @@ int main(int argc, char **argv) {
 	} else {
 		usage();
 	}
-	data[0] = addr;
-
+doit:
 	if ((d = ftdi_open()) == NULL) {
 		return 1;
 	}
@@ -127,7 +133,16 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
-	spi_tx(d, data, (n + 1) * 2);
+	if (do_cls) {
+		memset(data + 1, ' ', 64 * 2);
+		for (int y = 0; y < 30; y++) {
+			data[0] = 0x8000 + y * 64;
+			spi_tx(d, data, (64 + 1) * 2);
+		}
+	} else {
+		data[0] = addr;
+		spi_tx(d, data, (n + 1) * 2);
+	}
 
 	return 0;
 }
