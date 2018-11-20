@@ -10,10 +10,13 @@ module videoram #(parameter DWIDTH=16, parameter AWIDTH=8) (
 	input [DWIDTH-1:0] wdata,
 	input rclk, input re,
 	input [AWIDTH-1:0] raddr,
-	output reg [DWIDTH-1:0] rdata
+	output [DWIDTH-1:0] rdata
 	);
 
 reg [DWIDTH-1:0] mem[0:2**AWIDTH-1];
+reg [DWIDTH-1:0] data;
+
+assign rdata = data;
 
 `ifdef HEX_PATHS
 initial $readmemh("hdl/vga/vram.txt", mem);
@@ -28,7 +31,7 @@ end
 
 always @(posedge rclk) begin
 	if (re)
-		rdata <= mem[raddr];
+		data <= mem[raddr];
 end
 
 endmodule

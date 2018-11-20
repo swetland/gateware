@@ -37,7 +37,7 @@ out/ice40.lint: $(ICE40_SRCS)
 out/ice40.ys: $(ICE40_SRCS) Makefile
 	@mkdir -p out
 	@echo generating $@
-	@echo verilog_defines -DHEX_PATHS > $@
+	@echo verilog_defines -DHEX_PATHS -DYOSYS > $@
 	@for src in $(ICE40_SRCS) ; do echo read_verilog -sv $$src ; done >> $@
 	@echo synth_ice40 -top top -blif out/ice40.blif -json out/ice40.json >> $@
 

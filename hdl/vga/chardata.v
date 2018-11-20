@@ -17,7 +17,7 @@ module pixeldata(
 	input advance,
 	input [7:0] line,
 
-	output reg [11:0] pixel,
+	output [11:0] pixel,
 
 	input [7:0] vram_data,
 	output [10:0] vram_addr
@@ -31,9 +31,9 @@ chardata chardata(
 	.newline(newline),
 	.line(line),
 	.next(next),
-	.cdata(new_cdata),
+	.cdata_o(new_cdata),
 	.vram_data(vram_data),
-	.vram_addr(vram_addr)
+	.vram_addr_o(vram_addr)
 	);
 
 reg [7:0] cdata, next_cdata;
@@ -72,8 +72,9 @@ always @(*) begin
 		next_bitcount = 4'hF;
 	end 
 
-	pixel = (cdata[bitcount[3:1]] ? 12'hFFF : 12'h00F);
 end
+
+assign pixel = (cdata[bitcount[3:1]] ? 12'hFFF : 12'h00F);
 
 always @(posedge clk) begin
 	bitcount <= next_bitcount;
@@ -89,10 +90,10 @@ module chardata(
 	input newline,
 	input next,
 	input [7:0] line,
-	output reg [7:0] cdata,
+	output [7:0] cdata_o,
 
 	input [7:0] vram_data,
-	output reg [10:0] vram_addr
+	output [10:0] vram_addr_o
 	);
 
 `define SWAIT	2'h0
@@ -106,13 +107,19 @@ reg [1:0] state = `SWAIT, next_state;
 reg [10:0] next_addr;
 reg [7:0] next_cdata;
 
+reg [7:0] cdata;
+reg [10:0] vram_addr;
+
+assign cdata_o = cdata;
+assign vram_addr_o = vram_addr;
+
 `ifdef HEX_PATHS
 initial $readmemh("hdl/vga/prom.txt", pattern_rom);
 `else
 initial $readmemh("prom.txt", pattern_rom);
 `endif
 
-always @(*) begin
+always_comb begin
 	next_state = state;
 	next_addr = vram_addr;
 	next_cdata = cdata;
@@ -122,6 +129,9 @@ always @(*) begin
 		next_addr = { line[7:3], 6'b0 };
 		next_pline = line[2:0];
 	end
+`ifndef YOSYS
+	else
+`endif
 	case (state)
 	`SWAIT: if (next) begin	
 		next_state = `SLOAD;
@@ -140,7 +150,7 @@ always @(*) begin
 	endcase
 end
 
-always @(posedge clk) begin
+always_ff @(posedge clk) begin
 	state <= next_state;	
 	vram_addr <= next_addr;
 	cdata <= next_cdata;

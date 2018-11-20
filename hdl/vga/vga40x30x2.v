@@ -52,15 +52,14 @@ pixeldata pixeldata0(
 	);
 
 videoram #(8,11) vram(
-        .rclk(clk25m),
+	.rclk(clk25m),
 	.re(1'b1),
-        .rdata(vram_rdata),
-        .raddr(vram_raddr),
+	.rdata(vram_rdata),
+	.raddr(vram_raddr),
 	.wclk(vram_clk),
-        .we(vram_we),
-        .wdata(vram_wdata[7:0]),
-        .waddr(vram_waddr[10:0])
-        );
-
+	.we(vram_we),
+	.wdata(vram_wdata[7:0]),
+	.waddr(vram_waddr[10:0])
+	);
 
 endmodule

@@ -9,29 +9,53 @@
 
 module vga(
 	input clk,
-	output reg hs,
-	output reg vs,
-	output reg [3:0] r,
-	output reg [3:0] g,
-	output reg [3:0] b,
+	output hs,
+	output vs,
+	output [3:0] r,
+	output [3:0] g,
+	output [3:0] b,
 
-	output reg newline,
-	output reg advance,
-	output reg [7:0] line,
+	output newline,
+	output advance,
+	output [7:0] line,
 	input [11:0] pixel
 	);
 
-reg [9:0] hcount;
-reg [9:0] vcount;
+reg hsync;
+reg vsync;
+reg active;
+reg startline;
+reg [9:0] hcount = 10'b0;
+reg [9:0] vcount = 10'b0;
 
+reg next_hsync;
+reg next_vsync;
+reg next_active;
+reg next_startline;
 reg [9:0] next_hcount;
 reg [9:0] next_vcount;
-reg next_hs, next_vs;
-reg active;
-reg next_startline;
-reg [9:0] next_line;
+reg [9:0] next_lineno;
+reg [7:0] lineno;
 
-always @* begin
+assign hs = hsync;
+assign vs = vsync;
+assign line = lineno;
+assign advance = active;
+assign newline = startline;
+
+assign r = active ? pixel[11:8] : 4'd0;
+assign g = active ? pixel[7:4] : 4'd0;
+assign b = active ? pixel[3:0] : 4'd0;
+
+always_comb begin
+	next_hsync = 1'b0;
+	next_vsync = 1'b0;
+	next_hcount = 10'd0;
+	next_vcount = 10'd0;
+	next_active = 1'b0;
+	next_startline = 1'b0;
+	next_lineno = 10'b0;
+
 	if (hcount == 10'd799) begin
 		if (vcount == 10'd523)
 			next_vcount = 10'd0;
@@ -49,43 +73,32 @@ always @* begin
 		next_startline = 1'b0;
 
 	if (next_hcount < 10'd96)
-		next_hs = 1'b0;
+		next_hsync = 1'b0;
 	else
-		next_hs = 1'b1;
+		next_hsync = 1'b1;
 
 	if (next_vcount < 10'd2)
-		next_vs = 1'b0;
+		next_vsync = 1'b0;
 	else
-		next_vs = 1'b1;
+		next_vsync = 1'b1;
 
-	active = 1'b0;
 	if ((next_vcount > 31) && (next_vcount < 512))
 		if ((next_hcount > 143) && (next_hcount < 784))
-			active = 1'b1;
+			next_active = 1'b1;
 
-	next_line = next_vcount - 10'd32;
+	next_lineno = next_vcount - 10'd32;
 end
 
-always @(posedge clk) begin
+always_ff @(posedge clk) begin
 	hcount <= next_hcount;
 	vcount <= next_vcount;
-	hs <= next_hs;
-	vs <= next_vs;
+	hsync <= next_hsync;
+	vsync <= next_vsync;
 
 	/* signals to pixel generator */
-	newline <= next_startline;
-	advance <= active;
-	line <= next_line[8:1];
-
-	if (active) begin
-		r <= pixel[11:8];
-		g <= pixel[7:4];
-		b <= pixel[3:0];
-	end else begin
-		r <= 4'd0;
-		g <= 4'd0;
-		b <= 4'd0;
-	end
+	startline <= next_startline;
+	active <= next_active;
+	lineno <= next_lineno[8:1];
 end
 
 endmodule
