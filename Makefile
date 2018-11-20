@@ -8,8 +8,11 @@ VSIM_SRCS := hdl/testbench.sv hdl/simram.sv $(CPU_SRCS)
 ICE40_SRCS := hdl/ice40.v hdl/spi_debug_ifc.v hdl/lattice/pll_12_25.v
 ICE40_SRCS += $(CPU_SRCS) $(VGA_SRCS)
 
+USE_NEXTPNR ?= false
+
 VERILATOR := verilator
 ARACHNEPNR := arachne-pnr
+NEXTPNR := nextpnr-ice40
 YOSYS := yosys
 ICEPACK := icepack
 
@@ -36,8 +39,17 @@ out/ice40.ys: $(ICE40_SRCS) Makefile
 	@echo generating $@
 	@echo verilog_defines -DHEX_PATHS > $@
 	@for src in $(ICE40_SRCS) ; do echo read_verilog -sv $$src ; done >> $@
-	@echo synth_ice40 -top top -blif out/ice40.blif >> $@
+	@echo synth_ice40 -top top -blif out/ice40.blif -json out/ice40.json >> $@
 
+ifeq ($(USE_NEXTPNR), true)
+out/ice40.json: out/ice40.ys out/ice40.lint
+	@mkdir -p out
+	$(YOSYS) -s out/ice40.ys 2>&1 | tee out/ice40.synth.log
+
+out/ice40.asc: out/ice40.json
+	@mkdir -p out
+	$(NEXTPNR) --package sg48 --up5k --pcf hdl/ice40up.pcf --asc out/ice40.asc --json out/ice40.json 2>&1 | tee out/ice40.pnr.log
+else
 out/ice40.blif: out/ice40.ys out/ice40.lint
 	@mkdir -p out
 	$(YOSYS) -s out/ice40.ys 2>&1 | tee out/ice40.synth.log
@@ -45,6 +57,7 @@ out/ice40.blif: out/ice40.ys out/ice40.lint
 out/ice40.asc: out/ice40.blif
 	@mkdir -p out
 	$(ARACHNEPNR) -d 5k -p sg48 -o out/ice40.asc -p hdl/ice40up.pcf out/ice40.blif 2>&1 | tee out/ice40.pnr.log
+endif
 
 run: out/Vtestbench out/test.hex
 	./out/Vtestbench -trace out/trace.vcd -dump out/memory.bin -load out/test.hex
