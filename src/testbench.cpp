@@ -75,6 +75,68 @@ void loadmem(const char *fn) {
 	}
 }
 
+#ifdef VGA
+#define FRAME_W 800
+#define FRAME_H 524
+#define FRAME_TICKS (FRAME_W * FRAME_H)
+#define FRAME_BYTES (FRAME_W * FRAME_H * 3)
+
+static unsigned vga_ticks = 0;
+static unsigned vga_frames = 0;
+static unsigned char vga_data[2][FRAME_BYTES];
+static unsigned vga_active;
+
+static int vga_tick(int hs, int vs, int fr, int red, int grn, int blu) {
+	if (fr) {
+		//fprintf(stderr, "VGA: frame=%u active=%u ticks=%u\n",
+		//	vga_frames, vga_active, vga_ticks);
+		if (vga_ticks < FRAME_TICKS) {
+			fprintf(stderr, "VGA: frame too small: %u ticks\n", vga_ticks);
+		} else if (vga_ticks > FRAME_TICKS) {
+			fprintf(stderr, "VGA: frame too large: %u ticks\n", vga_ticks);
+		} else if (memcmp(vga_data[vga_active], vga_data[!vga_active], FRAME_BYTES)) {
+			char tmp[256];
+			sprintf(tmp, "frame%04d.ppm", vga_frames);
+			int fd = open(tmp, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+			if (fd < 0) {
+				fprintf(stderr, "VGA: cannot write '%s'\n", tmp);
+			} else {
+				sprintf(tmp, "P6\n%u %u 15\n", FRAME_W, FRAME_H);
+				write(fd, tmp, strlen(tmp));
+				write(fd, vga_data[vga_active], FRAME_BYTES);
+				close(fd);
+			}
+			vga_active = !vga_active;
+		} else {
+			//fprintf(stderr, "VGA: frame %u did not change\n", vga_frames);
+		}
+		vga_ticks = 0;
+		vga_frames++;
+		if (vga_frames == 5) {
+			return -1;
+		}
+	}
+	if (vga_ticks < FRAME_TICKS) {
+		unsigned char* pixel = vga_data[vga_active] + vga_ticks * 3;
+		if (hs == 0) {
+			pixel[0] = 0xf;
+			pixel[1] = 0x8;
+			pixel[2] = 0x0;
+		} else if (vs == 0) {
+			pixel[0] = 0xf;
+			pixel[1] = 0x0;
+			pixel[2] = 0xf;
+		} else {
+			pixel[0] = red;
+			pixel[1] = grn;
+			pixel[2] = blu;
+		}
+	}
+	vga_ticks++;
+	return 0;
+}
+#endif
+
 #ifdef TRACE
 static vluint64_t now = 0;
 
@@ -144,15 +206,27 @@ int main(int argc, char **argv) {
 	tfp->dump(now);
 	now += 10;
 #endif
-	testbench->clk = !testbench->clk;
 
 	while (!Verilated::gotFinish()) {
+		testbench->clk = 1;
 		testbench->eval();
 #ifdef TRACE
 		tfp->dump(now);
 		now += 5;
 #endif
-		testbench->clk = !testbench->clk;
+#ifdef VGA
+		if (vga_tick(testbench->vga_hsync, testbench->vga_vsync,
+			     testbench->vga_frame, testbench->vga_red,
+			     testbench->vga_grn, testbench->vga_blu)) {
+			break;
+		}
+#endif
+		testbench->clk = 0;
+		testbench->eval();
+#ifdef TRACE
+		tfp->dump(now);
+		now += 5;
+#endif
 	}
 #ifdef TRACE
 	tfp->close();
