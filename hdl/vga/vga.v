@@ -11,6 +11,7 @@ module vga(
 	input clk,
 	output hs,
 	output vs,
+	output fr,
 	output [3:0] r,
 	output [3:0] g,
 	output [3:0] b,
@@ -21,15 +22,17 @@ module vga(
 	input [11:0] pixel
 	);
 
-reg hsync;
-reg vsync;
-reg active;
-reg startline;
+reg hsync = 1'b0;
+reg vsync = 1'b0;
+reg frame = 1'b0;
+reg active = 1'b0;
+reg startline = 1'b0;
 reg [9:0] hcount = 10'b0;
 reg [9:0] vcount = 10'b0;
 
 reg next_hsync;
 reg next_vsync;
+reg next_frame;
 reg next_active;
 reg next_startline;
 reg [9:0] next_hcount;
@@ -39,6 +42,7 @@ reg [7:0] lineno;
 
 assign hs = hsync;
 assign vs = vsync;
+assign fr = frame;
 assign line = lineno;
 assign advance = active;
 assign newline = startline;
@@ -50,6 +54,7 @@ assign b = active ? pixel[3:0] : 4'd0;
 always_comb begin
 	next_hsync = 1'b0;
 	next_vsync = 1'b0;
+	next_frame = 1'b0;
 	next_hcount = 10'd0;
 	next_vcount = 10'd0;
 	next_active = 1'b0;
@@ -57,9 +62,10 @@ always_comb begin
 	next_lineno = 10'b0;
 
 	if (hcount == 10'd799) begin
-		if (vcount == 10'd523)
+		if (vcount == 10'd523) begin
 			next_vcount = 10'd0;
-		else
+			next_frame = 1'b1;
+		end else
 			next_vcount = vcount + 10'd1;
 		next_hcount = 10'd0;
 	end else begin
@@ -94,6 +100,7 @@ always_ff @(posedge clk) begin
 	vcount <= next_vcount;
 	hsync <= next_hsync;
 	vsync <= next_vsync;
+	frame <= next_frame;
 
 	/* signals to pixel generator */
 	startline <= next_startline;

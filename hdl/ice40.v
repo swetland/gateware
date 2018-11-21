@@ -128,6 +128,7 @@ vga40x30x2 vga(
 	.blu(vb),
 	.hs(vga_hsync),
 	.vs(vga_vsync),
+	.fr(),
 	.vram_waddr(waddr[10:0]),
 	.vram_wdata(wdata[7:0]),
 	.vram_we(we & cs_vram),
