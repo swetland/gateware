@@ -1,4 +1,5 @@
-// Copyright 2012, Brian Swetland.  Use at your own risk.
+// Copyright 2012, Brian Swetland <swetland@frotz.net>
+// Licensed under the Apache License, Version 2.0.
 //
 // sync sram with independent read/write addressing
 

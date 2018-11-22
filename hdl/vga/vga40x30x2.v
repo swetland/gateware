@@ -1,3 +1,5 @@
+// Copyright 2012, Brian Swetland <swetland@frotz.net>
+// Licensed under the Apache License, Version 2.0.
 
 module vga40x30x2(
 	input clk25m,
