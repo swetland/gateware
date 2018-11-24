@@ -1,4 +1,4 @@
-// Copyright 2015, Brian Swetland <swetland@frotz.net>
+// Copyright 2018, Brian Swetland <swetland@frotz.net>
 // Licensed under the Apache License, Version 2.0.
 
 #include <stdio.h>
@@ -17,7 +17,7 @@ char *append(char *buf, const char *s) {
 	return buf;
 }
 char *append_u16(char *buf, unsigned n) {
-	sprintf(buf, "0x%04x", n & 0xFFFF);
+	sprintf(buf, "%04x", n & 0xFFFF);
 	return buf + strlen(buf);
 }
 char *append_int(char *buf, int n) {
@@ -34,7 +34,7 @@ const char *alufunc[] = {
 };
 
 void printinst(char *buf, unsigned pc, unsigned instr, const char *fmt,
-	       unsigned _ex, unsigned ev) {
+	       unsigned _ex, unsigned ev, unsigned verbose) {
 	unsigned tmp;
 	char *start = buf;
 	char note[64];
@@ -104,12 +104,12 @@ void printinst(char *buf, unsigned pc, unsigned instr, const char *fmt,
 			} else {
 				tmp = s6;
 			}
-			buf = append_int(buf, tmp);
-			sprintf(note, "(%04x)", tmp & 0xffff);
+			buf = append_u16(buf, tmp);
+			sprintf(note, "(%d)", tmp);
 			break;
 		case '7':
-			buf = append_int(buf, s7);
-			sprintf(note, "(%04x)", pc + s7 + 1);
+			buf = append_u16(buf, pc + s7 + 1);
+			sprintf(note, "(%d)", pc + s7 + 1);
 			break;
 		case '9':
 			if (ex) {
@@ -118,12 +118,12 @@ void printinst(char *buf, unsigned pc, unsigned instr, const char *fmt,
 			} else {
 				tmp = s9;
 			}
-			buf = append_int(buf, tmp);
-			sprintf(note, "(%04x)", tmp & 0xffff);
+			buf = append_u16(buf, tmp);
+			sprintf(note, "(%d)", tmp);
 			break;
 		case 'b':
-			buf = append_int(buf, s11);
-			sprintf(note, "(%04x)", pc + s11 + 1);
+			buf = append_u16(buf, pc + s11 + 1);
+			sprintf(note, "(%d)", pc + s11 + 1);
 			break;
 		case 'c':
 			buf = append_int(buf, s12);
@@ -137,7 +137,7 @@ void printinst(char *buf, unsigned pc, unsigned instr, const char *fmt,
 		fmt++;
 	}
 done:
-	if (note[0]) {
+	if (verbose && note[0]) {
 		while ((buf - start) < 22) *buf++ = ' ';
 		strcpy(buf, note);
 		buf += strlen(note);
@@ -170,11 +170,11 @@ struct {
 };
 
 static void disassemble0(char *buf, unsigned pc, unsigned instr,
-		         unsigned ex, unsigned ev) {
+		         unsigned ex, unsigned ev, unsigned verbose) {
 	int n = 0;
 	for (n = 0 ;; n++) {
 		if ((instr & decode[n].mask) == decode[n].value) {
-			printinst(buf, pc, instr, decode[n].fmt, ex, ev);
+			printinst(buf, pc, instr, decode[n].fmt, ex, ev, verbose);
 			return;
 		}
 	}
@@ -184,7 +184,7 @@ static void disassemble0(char *buf, unsigned pc, unsigned instr,
 void disassemble(char *buf, unsigned pc, unsigned instr) {
 	static unsigned ex = 0;
 	static unsigned ev = 0;
-	disassemble0(buf, pc, instr, ex, ev);
+	disassemble0(buf, pc, instr, ex, ev, 1);
 	if ((instr & 0xF) == 0x2) {
 		ex = 1;
 		ev = ((instr >> 10) & 0x1F) | ((instr & 0x3F0) << 1) | ((instr >> 4) & 0x800);
@@ -200,8 +200,9 @@ int main(int argc, char **argv) {
         while (fgets(line, 1024, stdin)) {
                 unsigned insn = 0xFFFF;
 		unsigned ext = 0;
-                sscanf(line, "%04x%04x", &insn, &ext);
-                disassemble0(buf, 0, insn, ext >> 12, ext & 0xFFF);
+		unsigned pc = 0;
+                sscanf(line, "%04x%04x%04x", &insn, &ext, &pc);
+                disassemble0(buf, pc, insn, ext >> 12, ext & 0xFFF, 0);
                 printf("%s\n", buf);
                 fflush(stdout);
         }
