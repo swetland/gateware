@@ -1,6 +1,11 @@
+	mov r0, r1
+	mov r1, r0
+	mov r3, r7
 	mov r0, 0
 	mov r1, 1
 	mov r1, 7
+	mov r1, 255
+	mov r1, -250
 	mul r3, r1, r1
 	mov r2, 2
 	mov r3, 3
