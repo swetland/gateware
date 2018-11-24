@@ -26,3 +26,12 @@ E 0111 11 bl Ra           R7 = PC + 1, PC = Ra
 F 1fff alu Rc, Ra, si6    Rc = Ra <fn> ( Ex ? { Ev, si6[3:0] } : si6 )
 
 * Ex reset to 0 after all ops but "ext"
+
+notes
+-----
+- consider changing ext to use si10 instead and the reclaimed two bits
+  to open up more instruction set space
+- consider allowing ext to work with b/bl and/or bz/bnz for long branches
+- in which case maybe si11->si10 and compact branch instruction footprint
+  a bit too
+
