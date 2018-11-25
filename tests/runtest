@@ -17,13 +17,21 @@ if ! ./out/a16 "$1" "out/$1.hex" ; then
 	exit 0
 fi
 
-if ! ./out/cpu/Vtestbench -trace "out/$1.vcd" -load "out/$1.hex" | grep '^:WRI' > "out/$1.log" ; then
+if ! ./out/cpu/Vtestbench -trace "out/$1.vcd" -load "out/$1.hex" > "out/$1.raw" ; then
 	echo FAIL: Error simulating $1
 	echo FAIL > "out/$1.status"
 	exit 0
 fi
 
-grep '^;' "$1" | sed 's/;/:WRI /g' > "out/$1.tmpl"
+# extract WRItes from log and test
+grep '^:WRI' "out/$1.raw" > "out/$1.log"
+grep '^;[0-9a-fA-F]' "$1" | sed 's/;/:WRI /g' > "out/$1.tmpl"
+
+# extract REGister state from log and test (if test includes them)
+if grep -q '^;R' "$1" ; then
+	grep '^:REG' "out/$1.raw" >> "out/$1.log"
+	grep '^;R' "$1" | sed 's/;/:REG /g' >> "out/$1.tmpl"
+fi
 
 if ! diff "out/$1.tmpl" "out/$1.log" ; then
 	echo FAIL: $1 '(results differ)'
