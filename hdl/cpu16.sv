@@ -164,6 +164,10 @@ always_ff @(posedge clk) begin
 		ir_ext_imm <= ir_imm_s12[11:0];
 end
 
+wire [15:0]ex_adata;
+wire [15:0]ex_bdata;
+wire [15:0]ex_alu_rdata;
+
 regs16 regs(
 	.clk(clk),
 	.asel(ir_asel),
@@ -176,11 +180,6 @@ regs16 regs(
 	);
 
 // ---- EXECUTE ----
-
-wire [15:0]ex_adata;
-wire [15:0]ex_bdata;
-
-wire [15:0]ex_alu_rdata;
 
 reg [15:0]ex_branch_tgt = 16'b0;
 reg [2:0]ex_alu_op = 3'b0;
@@ -283,17 +282,22 @@ module alu16(
 	output [15:0]rdata
 	);
 
+reg [15:0]r;
+
 always_comb begin
 	case (op)
-	3'b000: rdata = xdata + ydata;
-	3'b001: rdata = xdata - ydata;
-	3'b010: rdata = xdata & ydata;
-	3'b011: rdata = xdata | ydata;
-	3'b100: rdata = xdata ^ ydata;
-	3'b101: rdata = { {15 {1'b0}}, xdata < ydata };
-	3'b110: rdata = { {15 {1'b0}}, xdata >= ydata };
-	3'b111: rdata = xdata * ydata;
+	3'b000: r = xdata + ydata;
+	3'b001: r = xdata - ydata;
+	3'b010: r = xdata & ydata;
+	3'b011: r = xdata | ydata;
+	3'b100: r = xdata ^ ydata;
+	3'b101: r = { {15 {1'b0}}, xdata < ydata };
+	3'b110: r = { {15 {1'b0}}, xdata >= ydata };
+	3'b111: r = xdata * ydata;
 	endcase
 end
+
+assign rdata = r;
+
 endmodule
 

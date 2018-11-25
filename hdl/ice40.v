@@ -114,8 +114,10 @@ end
 
 //assign out1 = cpu_reset;
 //assign out2 = cpu_raddr[0];
-assign out1 = dat_wr_req;
-assign out2 = dbg_we;
+//assign out1 = dat_wr_req;
+//assign out2 = dbg_we;
+assign out1 = clk12m;
+assign out2 = clk25m;
 
 wire cs0r = ~ins_rd_addr[8];
 wire cs1r = ins_rd_addr[8];
