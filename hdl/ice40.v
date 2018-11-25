@@ -21,6 +21,9 @@ module top(
 wire clk12m;
 wire clk25m;
 
+assign out1 = clk12m;
+assign out2 = clk25m;
+
 pll_12_25 pll0(
 	.clk12m_in(clk12m_in),
 	.clk12m_out(clk12m),
@@ -116,8 +119,6 @@ end
 //assign out2 = cpu_raddr[0];
 //assign out1 = dat_wr_req;
 //assign out2 = dbg_we;
-assign out1 = clk12m;
-assign out2 = clk25m;
 
 wire cs0r = ~ins_rd_addr[8];
 wire cs1r = ins_rd_addr[8];

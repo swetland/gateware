@@ -48,7 +48,14 @@ assign vram_addr = { line[7:3], next_xpos };
 // the display line to further index into the correct pattern
 wire [9:0] pattern_addr = { vram_data[6:0], line[2:0] };
 
+`ifdef ASYNC_ROM
 wire [7:0] cdata = pattern_rom[pattern_addr];
+`else
+reg [7:0] cdata;
+always_ff @(posedge clk)
+	cdata <= pattern_rom[pattern_addr];
+`endif
+
 
 // the high bit of the pattern shift register is used to
 // select the FG or BG color and feed out to the vga core
