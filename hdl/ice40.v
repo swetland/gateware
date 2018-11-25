@@ -3,6 +3,8 @@
 
 `timescale 1ns / 1ps
 
+`define WITH_CPU
+
 module top(
 	input clk12m_in,
 	output [1:0]vga_r,
@@ -47,6 +49,13 @@ wire dat_rd_req;
 wire [15:0]dat_wr_data;
 wire dat_wr_req;
 
+`ifndef WITH_CPU
+assign ins_rd_req = 1'b0;
+assign dat_rd_req = 1'b0;
+assign dat_wr_req = 1'b0;
+assign ins_rd_addr = 16'd0;
+assign dat_rw_addr = 16'd0;
+`else
 // fake arbitration that never denies a request
 reg ins_rd_rdy = 1'b0;
 reg dat_rd_rdy = 1'b0;
@@ -84,6 +93,7 @@ cpu16 cpu(
 
 	.reset(cpu_reset)
 	) /* synthesis syn_keep=1 */;
+`endif
 
 wire [15:0]dbg_waddr;
 wire [15:0]dbg_wdata;
