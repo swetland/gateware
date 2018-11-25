@@ -440,6 +440,7 @@ void expect_register(unsigned got) {
 
 
 #define OP_ALU_RC_RA_RB         0x0000
+#define OP_EXPANSION            0x0001
 #define OP_EXT                  0x0002
 #define OP_MOV_RC_S9            0x0003
 #define OP_LW_RC_RA_S6          0x0004
@@ -451,7 +452,8 @@ void expect_register(unsigned got) {
 #define OP_B_RA                 0x0027
 #define OP_BL_RA                0x0037
 #define OP_ALU_RC_RA_S6         0x0008
-#define OP_NOP                  0x0008
+#define OP_NOP_EXP              0x0001
+#define OP_NOP_ALU              0x0008
 
 #define ALU_ADD 0
 #define ALU_SUB 1
@@ -491,7 +493,7 @@ void assemble_line(int n, unsigned *tok, unsigned *num, char **str) {
 		/* blank lines are fine */
 		return;
 	case tNOP:
-		emit(OP_NOP);
+		emit(OP_NOP_EXP);
 		return;
 	case tNOT:
 		/* XOR rX, rX, -1 */
@@ -573,7 +575,7 @@ void assemble_line(int n, unsigned *tok, unsigned *num, char **str) {
 		expect_register(T1);
 		expect(tCOMMA, T2);
 		expect(tNUMBER, T3);
-		emit(OP_NOP); //TODO
+		emit(OP_NOP_EXP); //TODO
 		return;
 	case tHALT:
 		emit(0xFFFF);
