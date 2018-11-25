@@ -237,7 +237,7 @@ enum tokens {
 	tCOMMA, tCOLON, tOBRACK, tCBRACK, tDOT, tHASH, tSTRING, tNUMBER,
 	tADD, tSUB, tAND, tORR, tXOR, tSLT, tSGE, tMUL,
 	tLW,  tSW,  tNOP, tNOT, tB,   tBL,  tBZ,  tBNZ,
-	tMOV, tEXT, tDEBUG,
+	tMOV, tEXT, tDEBUG, tHALT,
 	tR0, tR1, tR2, tR3, tR4, tR5, tR6, tR7,
 	tSP, tLR,
 	tEQU, tWORD, tASCII, tASCIIZ,
@@ -249,7 +249,7 @@ char *tnames[] = {
 	",", ":", "[", "]", ".", "#", "<STRING>", "<NUMBER>",
 	"ADD", "SUB", "AND", "ORR", "XOR", "SLT", "SGE", "MUL",
 	"LW",  "SW",  "NOP", "NOT", "B",   "BL",  "BZ",  "BNZ",
-	"MOV", "EXT", "DEBUG",
+	"MOV", "EXT", "DEBUG", "HALT",
 	"R0",  "R1",  "R2",  "R3",  "R4",  "R5",  "R6",  "R7",
 	"SP",  "LR",
 	"EQU", "WORD", "STRING", "ASCIIZ"
@@ -574,6 +574,9 @@ void assemble_line(int n, unsigned *tok, unsigned *num, char **str) {
 		expect(tCOMMA, T2);
 		expect(tNUMBER, T3);
 		emit(OP_NOP); //TODO
+		return;
+	case tHALT:
+		emit(0xFFFF);
 		return;
 	case tWORD:
 		tmp = 1;
