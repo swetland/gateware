@@ -31,26 +31,54 @@ pll_12_25 pll0(
 
 wire sys_clk = clk12m;
 
-wire [15:0]cpu_waddr /* synthesis syn_keep=1 */;
-wire [15:0]cpu_wdata /* synthesis syn_keep=1 */;
-wire cpu_we /* synthesis syn_keep=1 */;
-wire [15:0]cpu_raddr /* synthesis syn_keep=1 */;
-wire [15:0]cpu_rdata /* synthesis syn_keep=1 */;
-wire cpu_re /* synthesis syn_keep=1 */;
-
 reg cpu_reset = 1'b0;
 
-cpu #(
-	.RWIDTH(16),
-	.SWIDTH(4)
-	)cpu0(
+// cpu memory interface
+wire [15:0]ins_rd_addr;
+wire [15:0]ins_rd_data;
+wire ins_rd_req;
+
+wire [15:0]dat_rw_addr;
+wire [15:0]dat_rd_data;
+wire dat_rd_req;
+wire [15:0]dat_wr_data;
+wire dat_wr_req;
+
+// fake arbitration that never denies a request
+reg ins_rd_rdy = 1'b0;
+reg dat_rd_rdy = 1'b0;
+reg dat_wr_rdy = 1'b0;
+
+always_ff @(posedge sys_clk) begin
+	if (cpu_reset) begin
+		ins_rd_rdy <= 1'b0;
+		dat_rd_rdy <= 1'b0;
+		dat_wr_rdy <= 1'b0;
+	end else begin
+		ins_rd_rdy <= ins_rd_req;
+		dat_rd_rdy <= dat_rd_req;
+		dat_wr_rdy <= dat_wr_req;
+	end
+end
+
+// until arbitration works
+assign dat_rd_data = 16'hEEEE;
+
+cpu16 cpu(
 	.clk(sys_clk),
-	.mem_waddr_o(cpu_waddr),
-	.mem_wdata_o(cpu_wdata),
-	.mem_wr_o(cpu_we),
-	.mem_raddr_o(cpu_raddr),
-	.mem_rdata_i(cpu_rdata),
-	.mem_rd_o(cpu_re),
+	.ins_rd_addr(ins_rd_addr),
+	.ins_rd_data(ins_rd_data),
+	.ins_rd_req(ins_rd_req),
+	.ins_rd_rdy(ins_rd_rdy),
+
+	.dat_rw_addr(dat_rw_addr),
+	.dat_wr_data(dat_wr_data),
+	.dat_rd_data(dat_rd_data),
+	.dat_rd_req(dat_rd_req),
+	.dat_rd_rdy(dat_rd_rdy),
+	.dat_wr_req(dat_wr_req),
+	.dat_wr_rdy(dat_wr_rdy),
+
 	.reset(cpu_reset)
 	) /* synthesis syn_keep=1 */;
 
@@ -70,9 +98,9 @@ spi_debug_ifc sdi(
 	);
 
 // debug interface has priority over cpu writes
-wire we = dbg_we | cpu_we;
-wire [15:0]waddr = dbg_we ? dbg_waddr : cpu_waddr;
-wire [15:0]wdata = dbg_we ? dbg_wdata : cpu_wdata;
+wire we = dbg_we | dat_wr_req;
+wire [15:0]waddr = dbg_we ? dbg_waddr : dat_rw_addr;
+wire [15:0]wdata = dbg_we ? dbg_wdata : dat_wr_data;
 
 wire cs_sram = (waddr[15:12] == 4'h0);
 wire cs_vram = (waddr[15:12] == 4'h8);
@@ -86,24 +114,24 @@ end
 
 //assign out1 = cpu_reset;
 //assign out2 = cpu_raddr[0];
-assign out1 = cpu_we;
+assign out1 = dat_wr_req;
 assign out2 = dbg_we;
 
-wire cs0r = ~cpu_raddr[8];
-wire cs1r = cpu_raddr[8];
+wire cs0r = ~ins_rd_addr[8];
+wire cs1r = ins_rd_addr[8];
 wire cs0w = ~waddr[8];
 wire cs1w = waddr[8];
 
 wire [15:0]rdata0;
 wire [15:0]rdata1;
 
-assign cpu_rdata = cs0r ? rdata0 : rdata1;
+assign ins_rd_data = cs0r ? rdata0 : rdata1;
 
 sram ram0(
 	.clk(sys_clk),
-	.raddr(cpu_raddr),
+	.raddr(ins_rd_addr),
 	.rdata(rdata0),
-	.re(cpu_re & cs0r & cs_sram),
+	.re(ins_rd_req & cs0r & cs_sram),
 	.waddr(waddr),
 	.wdata(wdata),
 	.we(we & cs0w & cs_sram)
@@ -111,9 +139,9 @@ sram ram0(
 
 sram ram1(
 	.clk(sys_clk),
-	.raddr(cpu_raddr),
+	.raddr(ins_rd_addr),
 	.rdata(rdata1),
-	.re(cpu_re & cs1r & cs_sram),
+	.re(ins_rd_req & cs1r & cs_sram),
 	.waddr(waddr),
 	.wdata(wdata),
 	.we(we & cs1w & cs_sram)

@@ -1,5 +1,6 @@
 
-CPU_SRCS := hdl/cpu/cpu.v hdl/cpu/alu.v hdl/cpu/regfile.v
+#CPU_SRCS := hdl/cpu/cpu.v hdl/cpu/alu.v hdl/cpu/regfile.v
+CPU_SRCS := hdl/cpu16.sv
 
 VGA_SRCS := hdl/vga/vga40x30x2.v hdl/vga/vga.v hdl/vga/videoram.v hdl/vga/chardata.v
 
@@ -72,22 +73,22 @@ out/ice40.asc: out/ice40.blif
 	$(ARACHNEPNR) -d 5k -p sg48 -o out/ice40.asc -p hdl/ice40up.pcf out/ice40.blif 2>&1 | tee out/ice40.pnr.log
 endif
 
-run: out/cpu/Vtestbench out/test.hex
-	./out/cpu/Vtestbench -trace out/trace.vcd -dump out/memory.bin -load out/test.hex
+run: out/cpu/Vtestbench out/test16.hex
+	./out/cpu/Vtestbench -trace out/trace.vcd -dump out/memory.bin -load out/test16.hex
 
-out/test.hex: src/test.s out/a16 out/d16
-	out/a16 src/test.s out/test.hex
+out/test16.hex: src/test16.s out/a16 out/d16
+	out/a16 src/test16.s out/test16.hex
 
 #out/test.hex: test.hex
 #	cp test.hex out/test.hex
 
-out/a16: src/a16.c src/d16.c
+out/a16: src/a16v4.c src/d16v4.c
 	@mkdir -p out
-	gcc -g -Wall -O1 -o out/a16 src/a16.c src/d16.c
+	gcc -g -Wall -O1 -o out/a16 src/a16v4.c src/d16v4.c
 
-out/d16: src/d16.c
+out/d16: src/d16v4.c
 	@mkdir -p out
-	gcc -g -Wall -O1 -o out/d16 -DSTANDALONE=1 src/d16.c
+	gcc -g -Wall -O1 -o out/d16 -DSTANDALONE=1 src/d16v4.c
 
 out/icetool: src/icetool.c src/ftdi.c src/ftdi.h
 	@mkdir -p out
