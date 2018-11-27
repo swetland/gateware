@@ -11,7 +11,7 @@ VSIM_VGA_SRCS := hdl/testvga.sv $(VGA_SRCS)
 ICE40_SRCS := hdl/ice40.v hdl/spi_debug_ifc.v hdl/lattice/pll_12_25.v
 ICE40_SRCS += $(CPU_SRCS) $(VGA_SRCS)
 
-USE_NEXTPNR ?= false
+USE_NEXTPNR ?= true
 
 VERILATOR := verilator
 ARACHNEPNR := arachne-pnr
