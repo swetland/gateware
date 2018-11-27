@@ -214,7 +214,7 @@ always_ff @(posedge clk) begin
 	ex_do_branch_zero <= do_branch_zero;
 	ex_do_mem_read = do_mem_read;
 	ex_do_mem_write = do_mem_write;
-	ex_imm <= (do_mem_read | do_mem_write) ? ir_imm_s7 : (do_use_imm9_or_imm6 ? ir_imm_s9 : ir_imm_s6);
+	ex_imm <= (do_mem_read | do_mem_write) ? ir_imm_s6 : (do_use_imm9_or_imm6 ? ir_imm_s9 : ir_imm_s6);
 end
 
 
@@ -258,6 +258,7 @@ module regs16(
 	output [15:0]bdata
 	);
 
+`ifdef verilator
 reg [15:0]rmem[0:7];
 reg [15:0]areg;
 reg [15:0]breg;
@@ -271,6 +272,51 @@ end
 
 assign adata = areg;
 assign bdata = breg;
+`else
+`ifdef YOSYS
+SB_RAM40_4K #(
+        .READ_MODE(0),
+        .WRITE_MODE(0)
+        )
+`else
+SB_RAM256x16
+`endif
+        bank_a (
+        .WADDR(wsel),
+        .RADDR(asel),
+        .MASK(16'b0),
+        .WDATA(wdata),
+        .RDATA(adata),
+        .WE(1'b1),
+        .WCLKE(wreg),
+        .WCLK(clk),
+        .RE(1'b1),
+        .RCLKE(1'b1),
+        .RCLK(clk)
+        );
+
+`ifdef YOSYS
+SB_RAM40_4K #(
+        .READ_MODE(0),
+        .WRITE_MODE(0)
+        )
+`else
+SB_RAM256x16
+`endif
+        bank_b (
+        .WADDR(wsel),
+        .RADDR(bsel),
+        .MASK(16'b0),
+        .WDATA(wdata),
+        .RDATA(bdata),
+        .WE(1'b1),
+        .WCLKE(wreg),
+        .WCLK(clk),
+        .RE(1'b1),
+        .RCLKE(1'b1),
+        .RCLK(clk)
+        );
+`endif
 
 endmodule
 
