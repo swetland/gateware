@@ -14,7 +14,7 @@ reg burp = 1'b0;
 
 always @(posedge clk) begin
 	count <= count + 16'd1;
-	burp <= (count >= 16'd0010) && (count <= 16'd0012) ? 1'b1 : 1'b0;
+//	burp <= (count >= 16'd0010) && (count <= 16'd0012) ? 1'b1 : 1'b0;
 	if (count == 16'd0005) reset <= 1'b0;
 	if (count == 16'd1000) $finish;
 	if (cpu.ir == 16'hFFFF) begin

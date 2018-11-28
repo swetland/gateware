@@ -16,3 +16,4 @@ set_io spi_cs 16
 
 set_io out1 3
 set_io out2 4
+set_io uart_tx 28

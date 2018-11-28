@@ -34,18 +34,21 @@ reg ir_valid_next;
 
 reg [15:0]pc = 16'd0;
 reg [15:0]ir = 16'd0;
+reg [15:0]ir_link = 16'b0;
 reg ir_valid = 1'b0;
 
 assign ins_rd_addr = pc_next;
 assign ins_rd_req = 1'b1;
 
+wire [15:0]pc_plus_1 = pc + 16'h0001;
+
 always_comb begin
 	if (reset) begin
 		pc_next = 16'h0000;
-	end else if (ex_do_branch_imm) begin
-		pc_next = ex_branch_tgt;
+	end else if (ex_do_branch) begin
+		pc_next = ex_do_branch_reg ? ex_adata : ex_branch_tgt;
 	end else if (ins_rd_rdy) begin
-		pc_next = pc + 16'h0001;
+		pc_next = pc_plus_1;
 	end else begin
 		pc_next = pc;
 	end
@@ -56,6 +59,7 @@ end
 always_ff @(posedge clk) begin
 	pc <= pc_next;
 	ir <= ir_next;
+	ir_link <= pc_plus_1;
 	ir_valid <= ir_valid_next;
 end
 
@@ -177,15 +181,16 @@ regs16 regs(
 	.asel(ir_asel),
 	.bsel(do_mem_write ? ir_csel : ir_bsel),
 	.wsel(ex_wsel),
-	.wreg(ex_do_wreg_alu),
+	.wreg(ex_do_wreg_alu | ex_do_wr_link),
 	.adata(ex_adata),
 	.bdata(ex_bdata),
-	.wdata(ex_alu_rdata)
+	.wdata(ex_do_wr_link ? ex_link : ex_alu_rdata)
 	);
 
 // ---- EXECUTE ----
 
 reg [15:0]ex_branch_tgt = 16'b0;
+reg [15:0]ex_link = 16'b0;
 reg [2:0]ex_alu_op = 3'b0;
 reg [2:0]ex_wsel = 3'b0;
 reg ex_do_wreg_alu = 1'b0;
@@ -201,6 +206,9 @@ reg ex_do_mem_read = 1'b0;
 reg ex_do_mem_write = 1'b0;
 
 reg [15:0]ex_imm = 16'b0;
+
+wire ex_adata_zero = (ex_adata == 16'b0);
+wire ex_do_branch = ex_do_branch_reg | ex_do_branch_imm | (ex_do_branch_cond & (ex_do_branch_zero == ex_adata_zero));
 
 `ifdef CPU16_WITH_TRACE
 assign trace = {
@@ -226,10 +234,11 @@ assign trace = {
 `endif
 
 always_ff @(posedge clk) begin
+	ex_branch_tgt <= pc + (do_branch_imm ? ir_imm_s11 : ir_imm_s7);
+	ex_link <= ir_link;
 	// for mem-read or mem-write we use the ALU for Ra + imm7
 	ex_alu_op <= (do_adata_zero | do_mem_read | do_mem_write) ? 3'b0 : ir_alu_op;
 	ex_wsel <= do_wr_link ? 3'd7 : ir_csel;
-	ex_branch_tgt <= pc + (do_branch_imm ? ir_imm_s11 : ir_imm_s7);
 	ex_do_wreg_alu <= do_wreg_alu;
 	ex_do_wreg_mem <= do_wreg_mem;
 	ex_do_adata_zero <= do_adata_zero;
