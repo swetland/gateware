@@ -46,16 +46,18 @@ wire [15:0]pc_plus_1 = pc + 16'h0001;
 reg do_use_ra;
 reg do_use_rb;
 
-wire stall_write_to_ir =
+wire stall_write =
 	ex_do_wreg_alu & 
 	((do_use_ra & (ir_asel == ex_wsel)) |
 	(do_use_rb & (ir_bsel == ex_wsel)));
 
 wire stall_branch =
-	do_branch_imm | do_branch_reg | do_branch_cond |
+	(ir_valid & (do_branch_imm | do_branch_reg | do_branch_cond)) |
 	ex_do_branch_imm | ex_do_branch_reg | ex_do_branch_cond;
 
-wire do_load_ir = ins_rd_rdy & (~stall_branch);
+wire stall = (ir_valid & stall_write) | stall_branch;
+
+wire do_load_ir = ins_rd_rdy & (~stall);
 
 always_comb begin
 	if (reset) begin
@@ -67,13 +69,17 @@ always_comb begin
 	end else begin
 		pc_next = pc;
 	end
-	ir_next = do_load_ir ? ins_rd_data : INS_NOP;
-	ir_valid_next = do_load_ir;
+	ir_next = ins_rd_data;
+
+	// for write stalls we don't want to invalidate IR,
+	// just hold off from updating it
+	ir_valid_next = stall_write ? ir_valid : do_load_ir;
 end
 
 always_ff @(posedge clk) begin
 	pc <= pc_next;
-	ir <= ir_next;
+	if (do_load_ir)
+		ir <= ir_next;
 	ir_link <= pc_plus_1;
 	ir_valid <= ir_valid_next;
 end
@@ -150,7 +156,6 @@ always_comb begin
 		do_set_ext = 1'b1;
 	end
 	4'b0011: begin // mov Rc, si9
-		do_use_ra = 1'b1;
 		do_wreg_alu = 1'b1;
 		do_adata_zero = 1'b1;
 		do_bdata_imm = 1'b1;
@@ -258,7 +263,7 @@ assign trace = {
 `endif
 
 always_ff @(posedge clk) begin
-	if (ir_valid) begin
+	if (ir_valid && (~stall_write)) begin
 		ex_branch_tgt <= pc + (do_branch_imm ? ir_imm_s11 : ir_imm_s7);
 		ex_link <= ir_link;
 		// for mem-read or mem-write we use the ALU for Ra + imm7
