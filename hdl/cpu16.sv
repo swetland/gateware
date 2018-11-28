@@ -46,6 +46,11 @@ wire [15:0]pc_plus_1 = pc + 16'h0001;
 reg do_use_ra;
 reg do_use_rb;
 
+// if writeback is writing the register file and execute wants to
+// stall to let writeback win
+wire stall_writeback = (ex_do_wreg_alu | ex_do_wr_link) & wb_wreg;
+
+//TODO better name: this is a write register conflict
 wire stall_write =
 	ex_do_wreg_alu & 
 	((do_use_ra & (ir_asel == ex_wsel)) |
@@ -55,7 +60,7 @@ wire stall_branch =
 	(ir_valid & (do_branch_imm | do_branch_reg | do_branch_cond)) |
 	ex_do_branch_imm | ex_do_branch_reg | ex_do_branch_cond;
 
-wire stall = (ir_valid & stall_write) | stall_branch;
+wire stall = (ir_valid & stall_write) | stall_branch | stall_writeback;
 
 wire do_load_ir = ins_rd_rdy & (~stall);
 
@@ -71,9 +76,9 @@ always_comb begin
 	end
 	ir_next = ins_rd_data;
 
-	// for write stalls we don't want to invalidate IR,
+	// for non-branch stalls we don't want to invalidate IR,
 	// just hold off from updating it
-	ir_valid_next = stall_write ? ir_valid : do_load_ir;
+	ir_valid_next = (stall_write | stall_writeback) ? ir_valid : do_load_ir;
 end
 
 always_ff @(posedge clk) begin
@@ -114,7 +119,6 @@ wire [15:0]ir_imm_s9 = { (ir_ext_rdy ? ir_ext_imm : ir_imm_s9_raw[15:4]), ir_imm
 
 // control signals
 reg do_wreg_alu; // write from alu
-reg do_wreg_mem; // write from memory
 reg do_adata_zero; // pass 0 to alu.xdata (instead of adata)
 reg do_bdata_imm; // pass imm to alu.ydata (instead of bdata)
 reg do_wr_link;    // write PC + 1 to LR
@@ -131,7 +135,6 @@ always_comb begin
 	do_use_ra = 1'b0;
 	do_use_rb = 1'b0;
 	do_wreg_alu = 1'b0;
-	do_wreg_mem = 1'b0;
 	do_adata_zero = 1'b0;
 	do_bdata_imm = 1'b0;
 	do_wr_link = 1'b0;
@@ -205,15 +208,18 @@ wire [15:0]ex_adata;
 wire [15:0]ex_bdata;
 wire [15:0]ex_alu_rdata;
 
+reg [2:0]wb_wsel = 3'b0;
+reg wb_wreg = 1'b0;
+
 regs16 regs(
 	.clk(clk),
 	.asel(ir_asel),
 	.bsel(do_mem_write ? ir_csel : ir_bsel),
-	.wsel(ex_wsel),
-	.wreg(ex_do_wreg_alu | ex_do_wr_link),
+	.wsel(wb_wreg ? wb_wsel : ex_wsel),
+	.wreg(wb_wreg | ex_do_wreg_alu | ex_do_wr_link),
 	.adata(ex_adata),
 	.bdata(ex_bdata),
-	.wdata(ex_do_wr_link ? ex_link : ex_alu_rdata)
+	.wdata(wb_wreg ? dat_rd_data : (ex_do_wr_link ? ex_link : ex_alu_rdata))
 	);
 
 // ---- EXECUTE ----
@@ -223,7 +229,6 @@ reg [15:0]ex_link = 16'b0;
 reg [2:0]ex_alu_op = 3'b0;
 reg [2:0]ex_wsel = 3'b0;
 reg ex_do_wreg_alu = 1'b0;
-reg ex_do_wreg_mem = 1'b0;
 reg ex_do_adata_zero = 1'b0;
 reg ex_do_bdata_imm = 1'b0;
 reg ex_do_wr_link = 1'b0;
@@ -250,7 +255,7 @@ assign trace = {
 	ex_wsel,
 
 	ex_do_wreg_alu,
-	ex_do_wreg_mem,
+	1'b0,
 	ex_do_adata_zero,
 	ex_do_bdata_imm,
 	ex_do_branch_imm,
@@ -263,14 +268,13 @@ assign trace = {
 `endif
 
 always_ff @(posedge clk) begin
-	if (ir_valid && (~stall_write)) begin
+	if (ir_valid && (~(stall_write | stall_writeback))) begin
 		ex_branch_tgt <= pc + (do_branch_imm ? ir_imm_s11 : ir_imm_s7);
 		ex_link <= ir_link;
 		// for mem-read or mem-write we use the ALU for Ra + imm7
 		ex_alu_op <= (do_adata_zero | do_mem_read | do_mem_write) ? 3'b0 : ir_alu_op;
 		ex_wsel <= do_wr_link ? 3'd7 : ir_csel;
 		ex_do_wreg_alu <= do_wreg_alu;
-		ex_do_wreg_mem <= do_wreg_mem;
 		ex_do_adata_zero <= do_adata_zero;
 		ex_do_bdata_imm <= do_bdata_imm;
 		ex_do_wr_link <= do_wr_link;
@@ -281,12 +285,11 @@ always_ff @(posedge clk) begin
 		ex_do_mem_read <= do_mem_read;
 		ex_do_mem_write <= do_mem_write;
 		ex_imm <= (do_mem_read | do_mem_write) ? ir_imm_s6 : (do_use_imm9_or_imm6 ? ir_imm_s9 : ir_imm_s6);
-	end else begin
+	end else if (~stall_writeback) begin
 		// if invalid, parameters are unchanged but actions
 		// must all be disabled
 		// TODO: better names to differentiate
 		ex_do_wreg_alu <= 1'b0;
-		ex_do_wreg_mem <= 1'b0;
 		ex_do_wr_link <= 1'b0;
 		ex_do_branch_imm <= 1'b0;
 		ex_do_branch_reg <= 1'b0;
@@ -308,6 +311,11 @@ assign dat_rw_addr = ex_alu_rdata;
 assign dat_wr_data = ex_bdata;
 assign dat_rd_req = ex_do_mem_read;
 assign dat_wr_req = ex_do_mem_write;
+
+always_ff @(posedge clk) begin
+	wb_wreg <= ex_do_mem_read;
+	wb_wsel <= ex_wsel;
+end
 
 // ---- SIMULATION DEBUG ASSIST ----
 
