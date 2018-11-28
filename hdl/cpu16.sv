@@ -18,6 +18,10 @@ module cpu16(
 	input dat_rd_rdy,
 	input dat_wr_rdy,
 
+`ifdef CPU16_WITH_TRACE
+	output [63:0]trace,
+`endif
+
 	input reset
         );
 
@@ -197,6 +201,29 @@ reg ex_do_mem_read = 1'b0;
 reg ex_do_mem_write = 1'b0;
 
 reg [15:0]ex_imm = 16'b0;
+
+`ifdef CPU16_WITH_TRACE
+assign trace = {
+	pc,
+	ir,
+
+	ir_valid,
+	ir_ext_rdy,
+	ex_alu_op,
+	ex_wsel,
+
+	ex_do_wreg_alu,
+	ex_do_wreg_mem,
+	ex_do_adata_zero,
+	ex_do_bdata_imm,
+	ex_do_branch_imm,
+	ex_do_mem_read,
+	ex_do_mem_write,
+	ex_do_wr_link,
+
+	ex_imm
+	};
+`endif
 
 always_ff @(posedge clk) begin
 	// for mem-read or mem-write we use the ALU for Ra + imm7
