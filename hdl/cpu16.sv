@@ -25,7 +25,8 @@ module cpu16(
 	input reset
         );
 
-localparam INS_NOP = 16'h0001;
+//localparam INS_NOP = 16'h0001;
+localparam INS_NOP = 16'hAAA1;
 
 // ---- FETCH ----
 reg [15:0]pc_next;
@@ -42,18 +43,32 @@ assign ins_rd_req = 1'b1;
 
 wire [15:0]pc_plus_1 = pc + 16'h0001;
 
+reg do_use_ra;
+reg do_use_rb;
+
+wire stall_write_to_ir =
+	ex_do_wreg_alu & 
+	((do_use_ra & (ir_asel == ex_wsel)) |
+	(do_use_rb & (ir_bsel == ex_wsel)));
+
+wire stall_branch =
+	do_branch_imm | do_branch_reg | do_branch_cond |
+	ex_do_branch_imm | ex_do_branch_reg | ex_do_branch_cond;
+
+wire do_load_ir = ins_rd_rdy & (~stall_branch);
+
 always_comb begin
 	if (reset) begin
 		pc_next = 16'h0000;
 	end else if (ex_do_branch) begin
 		pc_next = ex_do_branch_reg ? ex_adata : ex_branch_tgt;
-	end else if (ins_rd_rdy) begin
+	end else if (do_load_ir) begin
 		pc_next = pc_plus_1;
 	end else begin
 		pc_next = pc;
 	end
-	ir_next = ins_rd_rdy ? ins_rd_data : INS_NOP;
-	ir_valid_next = ins_rd_rdy;
+	ir_next = do_load_ir ? ins_rd_data : INS_NOP;
+	ir_valid_next = do_load_ir;
 end
 
 always_ff @(posedge clk) begin
@@ -107,6 +122,8 @@ reg do_mem_write;
 reg do_set_ext;
 
 always_comb begin
+	do_use_ra = 1'b0;
+	do_use_rb = 1'b0;
 	do_wreg_alu = 1'b0;
 	do_wreg_mem = 1'b0;
 	do_adata_zero = 1'b0;
@@ -123,6 +140,8 @@ always_comb begin
 
 	casez (ir_opcode)
 	4'b0000: begin // alu Rc, Ra, Rb
+		do_use_ra = 1'b1;
+		do_use_rb = 1'b1;
 		do_wreg_alu = 1'b1;
 	end
 	4'b0001: begin // expansion (nop)
@@ -131,16 +150,20 @@ always_comb begin
 		do_set_ext = 1'b1;
 	end
 	4'b0011: begin // mov Rc, si9
+		do_use_ra = 1'b1;
 		do_wreg_alu = 1'b1;
 		do_adata_zero = 1'b1;
 		do_bdata_imm = 1'b1;
 		do_use_imm9_or_imm6 = 1'b1;
 	end
 	4'b0100: begin // lw Rc, [Ra, si6]
+		do_use_ra = 1'b1;
 		do_mem_read = 1'b1;
 		do_use_imm9_or_imm6 = 1'b0;
 	end
 	4'b0101: begin // sw Rc, [Ra, si6]
+		do_use_ra = 1'b1;
+		do_use_rb = 1'b1;
 		do_mem_write = 1'b1;
 		do_use_imm9_or_imm6 = 1'b0;
 	end
@@ -158,6 +181,7 @@ always_comb begin
 		end
 	end
 	4'b1???: begin // alu Rc, Ra, si6
+		do_use_ra = 1'b1;
 		do_wreg_alu = 1'b1;
 		do_bdata_imm = 1'b1;
 		do_use_imm9_or_imm6 = 1'b0;
@@ -234,23 +258,37 @@ assign trace = {
 `endif
 
 always_ff @(posedge clk) begin
-	ex_branch_tgt <= pc + (do_branch_imm ? ir_imm_s11 : ir_imm_s7);
-	ex_link <= ir_link;
-	// for mem-read or mem-write we use the ALU for Ra + imm7
-	ex_alu_op <= (do_adata_zero | do_mem_read | do_mem_write) ? 3'b0 : ir_alu_op;
-	ex_wsel <= do_wr_link ? 3'd7 : ir_csel;
-	ex_do_wreg_alu <= do_wreg_alu;
-	ex_do_wreg_mem <= do_wreg_mem;
-	ex_do_adata_zero <= do_adata_zero;
-	ex_do_bdata_imm <= do_bdata_imm;
-	ex_do_wr_link <= do_wr_link;
-	ex_do_branch_imm <= do_branch_imm;
-	ex_do_branch_reg <= do_branch_reg;
-	ex_do_branch_cond <= do_branch_cond;
-	ex_do_branch_zero <= do_branch_zero;
-	ex_do_mem_read = do_mem_read;
-	ex_do_mem_write = do_mem_write;
-	ex_imm <= (do_mem_read | do_mem_write) ? ir_imm_s6 : (do_use_imm9_or_imm6 ? ir_imm_s9 : ir_imm_s6);
+	if (ir_valid) begin
+		ex_branch_tgt <= pc + (do_branch_imm ? ir_imm_s11 : ir_imm_s7);
+		ex_link <= ir_link;
+		// for mem-read or mem-write we use the ALU for Ra + imm7
+		ex_alu_op <= (do_adata_zero | do_mem_read | do_mem_write) ? 3'b0 : ir_alu_op;
+		ex_wsel <= do_wr_link ? 3'd7 : ir_csel;
+		ex_do_wreg_alu <= do_wreg_alu;
+		ex_do_wreg_mem <= do_wreg_mem;
+		ex_do_adata_zero <= do_adata_zero;
+		ex_do_bdata_imm <= do_bdata_imm;
+		ex_do_wr_link <= do_wr_link;
+		ex_do_branch_imm <= do_branch_imm;
+		ex_do_branch_reg <= do_branch_reg;
+		ex_do_branch_cond <= do_branch_cond;
+		ex_do_branch_zero <= do_branch_zero;
+		ex_do_mem_read <= do_mem_read;
+		ex_do_mem_write <= do_mem_write;
+		ex_imm <= (do_mem_read | do_mem_write) ? ir_imm_s6 : (do_use_imm9_or_imm6 ? ir_imm_s9 : ir_imm_s6);
+	end else begin
+		// if invalid, parameters are unchanged but actions
+		// must all be disabled
+		// TODO: better names to differentiate
+		ex_do_wreg_alu <= 1'b0;
+		ex_do_wreg_mem <= 1'b0;
+		ex_do_wr_link <= 1'b0;
+		ex_do_branch_imm <= 1'b0;
+		ex_do_branch_reg <= 1'b0;
+		ex_do_branch_cond <= 1'b0;
+		ex_do_mem_read <= 1'b0;
+		ex_do_mem_write <= 1'b0;
+	end
 end
 
 
