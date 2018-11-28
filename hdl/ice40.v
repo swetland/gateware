@@ -34,7 +34,19 @@ pll_12_25 pll0(
 	.reset(1'b1)
 	);
 
-wire sys_clk = clk12m;
+wire sys_clk;
+
+`ifdef USE_HFOSC
+SB_HFOSC #(
+	.CLKHF_DIV("0b00")
+	)hfosc(
+	.CLKHFEN(1'b1),
+	.CLKHFPU(1'b1),
+	.CLKHF(sys_clk)
+	);
+`else
+assign sys_clk = clk12m;
+`endif
 
 reg cpu_reset = 1'b0;
 
@@ -115,49 +127,24 @@ wire we = dbg_we | dat_wr_req;
 wire [15:0]waddr = dbg_we ? dbg_waddr : dat_rw_addr;
 wire [15:0]wdata = dbg_we ? dbg_wdata : dat_wr_data;
 
-wire cs_sram = (waddr[15:12] == 4'h0);
-wire cs_vram = (waddr[15:12] == 4'h8);
-wire cs_ctrl = (waddr[15:12] == 4'hF);
+wire w_cs_sram = (waddr[15:12] == 4'h0);
+wire w_cs_vram = (waddr[15:12] == 4'h8);
+wire w_cs_ctrl = (waddr[15:12] == 4'hF);
 
 always @(posedge sys_clk) begin
-	if (cs_ctrl & we) begin
+	if (w_cs_ctrl & we) begin
 		cpu_reset <= wdata[0];
 	end
 end
 
-//assign out1 = cpu_reset;
-//assign out2 = cpu_raddr[0];
-//assign out1 = dat_wr_req;
-//assign out2 = dbg_we;
-
-wire cs0r = ~ins_rd_addr[8];
-wire cs1r = ins_rd_addr[8];
-wire cs0w = ~waddr[8];
-wire cs1w = waddr[8];
-
-wire [15:0]rdata0;
-wire [15:0]rdata1;
-
-assign ins_rd_data = cs0r ? rdata0 : rdata1;
-
 sram ram0(
 	.clk(sys_clk),
 	.raddr(ins_rd_addr),
-	.rdata(rdata0),
-	.re(ins_rd_req & cs0r & cs_sram),
+	.rdata(ins_rd_data),
+	.re(ins_rd_req),
 	.waddr(waddr),
 	.wdata(wdata),
-	.we(we & cs0w & cs_sram)
-	);
-
-sram ram1(
-	.clk(sys_clk),
-	.raddr(ins_rd_addr),
-	.rdata(rdata1),
-	.re(ins_rd_req & cs1r & cs_sram),
-	.waddr(waddr),
-	.wdata(wdata),
-	.we(we & cs1w & cs_sram)
+	.we(we & w_cs_sram)
 	);
 
 wire [1:0]vr, vg, vb;
@@ -172,7 +159,7 @@ vga40x30x2 vga(
 	.fr(),
 	.vram_waddr(waddr[10:0]),
 	.vram_wdata(wdata[7:0]),
-	.vram_we(we & cs_vram),
+	.vram_we(we & w_cs_vram),
 	.vram_clk(sys_clk)
 	);
 
