@@ -1,0 +1,39 @@
+instruction encodings                            alu opcodes
+----------------------------------------------   ---------------------------
+FEDC BA9 876 543 210
+ffff bbb aaa ccc 000 ALU Rc, Ra, Rb              0000 AND  r = x & y
+siii iii aaa ccc 001 ADD Rc, Ra, si7             0001 ORR  r = x | y
+siii iii iii ccc 010 MOV Rc, si10                0010 XOR  r = x ^ y 
+siii iii aaa ccc 011 LW Rc, [Ra, si7]            0011 NOT  r = ~x
+szii iii iii bbb 100 BZ/BNZ Rb, si9              0100 ADD  r = x + y
+siii iii aaa bbb 101 SW Rb, [Ra, si7]            0101 SUB  r = x - y
+siii iii iii jjl 110 B/BL si12                   0110 SLT  r = x < y (signed)
+0xxx 000 aaa xxl 111 B/BL Ra                     0111 SLU  r = x < y (unsigned)
+0xxx 001 xxx xxx 111 NOP                         1000 SHL  1|4
+0    010         111                             1001 SHR  1|4
+0    011         111                             1010 ROL  1|4
+0uuu 100 uuu ccc 111 LC Rc, u6                   1011 ROR  1|4
+0uuu 101 uuu bbb 111 SC Rb, u6                   1100 MUL  r = x * y
+0xff 110 aaa ccc 111 SHL/SHR/ROL/ROR Rc, Ra, 1   1101 DUP  r = {x[7:0], y[7:0]}
+0xff 111 aaa ccc 111 SHL/SHR/ROL/ROR Rc, Ra, 4   1110 SWP  r = {x[7:0], y[15:8]}
+1iii iii aaa ccc 111 MHI Rc, Ra, si7[5:0]        1111 MHI  r = {y[5:0], x[9:0]} 
+
+aliases                                          immediate forms (shared bits)
+----------------------------------------------   -------------------------------
+MOV Rc, Ra      -> AND Rc, Ra, Ra                 si7  ssssssssssiiiiii
+SNE Rc, Ra, Rb  -> XOR Rc, Ra, Rb                 si10 sssssssiiiiiiiii
+SGE Rc, Ra, Rb  -> SLT Rc, Rb, Ra                 si9  ssssssssiiiiiiii
+SGU Rc, Ra, Rb  -> SLU Rc, Rb, Ra                 si12 sssssjjiiiiiiiii
+
+some implementation notes
+-------------------------
+ir[2] 0=bsel-hi,  1=bsel-lo
+ir[0] 0=imm=si10 1=imm=si7
+ir[1] 0=bim=si9  1=bim=si12
+alu.x = regs.a | pc (b)
+alu.y = regs.b | imm
+alu.op = ffff | 00ff(shifts) | 0100(lw/sw/b) | 1111 (mhi)
+brtgt = regs.a | alu.r
+bsel = ir[2] ? ir[2:0] : ir[11:9]
+wsel = ir[5:3] | 7 (bl)
+
