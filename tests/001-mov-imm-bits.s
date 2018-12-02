@@ -7,6 +7,7 @@ mov r5, 0x20
 mov r6, 0x40
 mov r7, -256
 nop
+nop
 halt
 
 ;R0 0001

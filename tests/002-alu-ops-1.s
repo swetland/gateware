@@ -5,8 +5,8 @@ mov r3, 0x44
 add r4, r1, r2
 sub r5, r3, r1
 orr r6, r1, r3
-sge r7, r3, r2
-
+slt r7, r2, r3
+nop
 nop
 halt
 

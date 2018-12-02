@@ -8,6 +8,7 @@ mov r6, 0x70
 mov r7, 0x80
 
 nop
+nop
 halt
 
 ;R0 0010

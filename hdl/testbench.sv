@@ -17,7 +17,7 @@ always @(posedge clk) begin
 //	burp <= (count >= 16'd0010) && (count <= 16'd0012) ? 1'b1 : 1'b0;
 	if (count == 16'd0005) reset <= 1'b0;
 	if (count == 16'd1000) $finish;
-	if (cpu.ir == 16'hFFFF) begin
+	if (cpu.de_ir == 16'hFFFF) begin
 		for ( integer i = 0; i < 8; i++ ) begin
 			$display(":REG R%0d %8X", i, cpu.regs.rmem[i]);
 		end
