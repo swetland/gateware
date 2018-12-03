@@ -1,0 +1,21 @@
+mov r0, 0x1234
+mov r1, 0xa7b6
+dup r2, r0, r1
+swp r3, r0, r0
+dup r4, r0, r0
+swp r5, r1, r1
+dup r6, r1, r0
+swp r7, r1, r0
+nop
+nop
+halt
+
+;R0 1234
+;R1 a7b6
+;R2 34b6
+;R3 3412
+;R4 3434
+;R5 b6a7
+;R6 b634
+;R7 b612
+
