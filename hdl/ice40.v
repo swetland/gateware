@@ -180,18 +180,27 @@ module sram(
 	input we
 	);
 
-`ifndef uselatticeprim
+`ifndef USE_LATTICE_SB_RAM40
 reg [15:0]mem[255:0];
 reg [15:0]ra;
 always @(posedge clk) begin
 	if (we)
 		mem[waddr[7:0]] <= wdata;
 	if (re)
-		ra <= raddr;
+		ra <= mem[raddr[7:0]];
 end
-assign rdata = mem[ra[7:0]];
+assign rdata = ra;
 `else
-SB_RAM256x16 sram_inst(
+
+`ifdef YOSYS
+SB_RAM40_4K #(
+        .READ_MODE(0),
+        .WRITE_MODE(0)
+        )
+`else
+SB_RAM256x16
+`endif
+	sram_inst(
 	.RDATA(rdata),
 	.RADDR(raddr[7:0]),
 	.RCLK(clk),
@@ -202,7 +211,7 @@ SB_RAM256x16 sram_inst(
 	.WCLK(clk),
 	.WCLKE(1'b1),
 	.WE(we),
-	.MASK()
+	.MASK(16'b0)
 	);
 `endif
 
