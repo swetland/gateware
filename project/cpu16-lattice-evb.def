@@ -1,0 +1,10 @@
+
+PROJECT_TYPE := nextpnr-ice40
+
+PROJECT_SRCS := hdl/ice40.v hdl/lattice/pll_12_25.v
+PROJECT_SRCS += hdl/spi_debug_ifc.v
+PROJECT_SRCS += hdl/vga/vga40x30x2.v hdl/vga/vga.v hdl/vga/videoram.v hdl/vga/chardata.v
+PROJECT_SRCS += hdl/cpu16.sv hdl/cpu16_regs.sv hdl/cpu16_alu.sv
+PROJECT_SRCS += hdl/ice40up.pcf
+
+PROJECT_NEXTPNR_OPTS := --package sg48 --up5k 

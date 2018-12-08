@@ -17,7 +17,7 @@ if ! ./out/a16 "$1" "out/$1.hex" ; then
 	exit 0
 fi
 
-if ! ./out/cpu/Vtestbench -trace "out/$1.vcd" -load "out/$1.hex" > "out/$1.raw" ; then
+if ! ./out/cpu16-vsim -trace "out/$1.vcd" -load "out/$1.hex" > "out/$1.raw" ; then
 	echo FAIL: Error simulating $1
 	echo FAIL > "out/$1.status"
 	exit 0

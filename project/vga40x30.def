@@ -1,0 +1,7 @@
+
+PROJECT_TYPE := verilator-sim
+
+PROJECT_SRCS := hdl/testvga.sv
+PROJECT_SRCS += hdl/vga/vga40x30x2.v hdl/vga/vga.v hdl/vga/videoram.v hdl/vga/chardata.v
+
+PROJECT_VOPTS := -CFLAGS -DVGA
