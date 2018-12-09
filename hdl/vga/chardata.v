@@ -11,15 +11,20 @@
 
 `timescale 1ns/1ns
 
-module pixeldata(
+module pixeldata #(
+	parameter BPP = 2
+)(
 	input clk,
 	input newline,
 	input advance,
 	input [7:0] line,
-	output [11:0] pixel,
+	output [(3*BPP)-1:0] pixel,
 	input [7:0] vram_data,
 	output [10:0] vram_addr
-	);
+);
+
+wire [(3*BPP)-1:0]FG = { 3*BPP { 1'b1 }};
+wire [(3*BPP)-1:0]BG = { { 2*BPP { 1'b0 }}, { BPP { 1'b1 }} };
 
 reg [7:0] pattern_rom [0:1023];
 
@@ -59,7 +64,7 @@ always_ff @(posedge clk)
 
 // the high bit of the pattern shift register is used to
 // select the FG or BG color and feed out to the vga core
-assign pixel = pattern[15] ? 12'hFFF : 12'h00F;
+assign pixel = pattern[15] ? FG : BG;
 
 always_comb begin
 	next_xpos = xpos;

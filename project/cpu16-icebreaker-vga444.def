@@ -1,7 +1,7 @@
 
 PROJECT_TYPE := nextpnr-ice40
 
-PROJECT_SRCS := hdl/board_lattice_evb.v hdl/board_lattice_evb.pcf
+PROJECT_SRCS := hdl/board_icebreaker_vga444.v hdl/board_icebreaker_vga444.pcf
 PROJECT_SRCS += hdl/system_cpu16_vga40x30.v hdl/lattice/pll_12_25.v
 PROJECT_SRCS += hdl/spi_debug_ifc.v
 PROJECT_SRCS += hdl/vga/vga40x30x2.v hdl/vga/vga.v hdl/vga/videoram.v hdl/vga/chardata.v

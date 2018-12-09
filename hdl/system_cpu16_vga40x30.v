@@ -5,11 +5,13 @@
 
 `define WITH_CPU
 
-module top(
+module system_cpu16_vga40x30 #(
+	parameter BPP = 2
+)(
 	input clk12m_in,
-	output [1:0]vga_r,
-	output [1:0]vga_g,
-	output [1:0]vga_b,
+	output [BPP-1:0]vga_red,
+	output [BPP-1:0]vga_grn,
+	output [BPP-1:0]vga_blu,
 	output vga_hsync,
 	output vga_vsync,
 	input spi_mosi,
@@ -18,7 +20,7 @@ module top(
 	input spi_cs,
 	output out1,
 	output out2
-	);
+);
 
 wire clk12m;
 wire clk25m;
@@ -147,9 +149,13 @@ sram ram0(
 	.we(we & w_cs_sram)
 	);
 
-wire [1:0]vr, vg, vb;
+wire [BPP-1:0]vr;
+wire [BPP-1:0]vg;
+wire [BPP-1:0]vb;
 
-vga40x30x2 vga(
+vga40x30x2 #(
+	.BPP(BPP)
+	) vga (
 	.clk25m(clk25m),
 	.red(vr),
 	.grn(vg),
@@ -164,9 +170,9 @@ vga40x30x2 vga(
 	);
 
 // hack: flip display from blue to red when CPU is held in reset
-assign vga_r = cpu_reset ? vb : vr;
-assign vga_g = vg;
-assign vga_b = cpu_reset ? vr : vb;
+assign vga_red = cpu_reset ? vb : vr;
+assign vga_grn = vg;
+assign vga_blu = cpu_reset ? vr : vb;
 
 endmodule
 

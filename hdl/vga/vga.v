@@ -8,20 +8,22 @@
 //
 // CLK: 25MHz, px=40nS, line=32uS, frame=16.768mS
 
-module vga(
+module vga #(
+	parameter BPP = 4
+)(
 	input clk,
 	output hs,
 	output vs,
 	output fr,
-	output [3:0] r,
-	output [3:0] g,
-	output [3:0] b,
+	output [BPP-1:0] r,
+	output [BPP-1:0] g,
+	output [BPP-1:0] b,
 
 	output newline,
 	output advance,
 	output [7:0] line,
-	input [11:0] pixel
-	);
+	input [(3*BPP)-1:0] pixel
+);
 
 reg hsync = 1'b0;
 reg vsync = 1'b0;
@@ -48,9 +50,9 @@ assign line = adjusted_vcount[8:1];
 assign advance = active;
 assign newline = startline;
 
-assign r = active ? pixel[11:8] : 4'd0;
-assign g = active ? pixel[7:4] : 4'd0;
-assign b = active ? pixel[3:0] : 4'd0;
+assign r = active ? pixel[(3*BPP)-1:(2*BPP)] : { BPP { 1'b0 }};
+assign g = active ? pixel[(2*BPP)-1:BPP] : { BPP { 1'b0 }};
+assign b = active ? pixel[BPP-1:0] : { BPP { 1'b0 }};
 
 always_comb begin
 	next_hsync = hsync;

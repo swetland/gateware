@@ -1,11 +1,13 @@
 // Copyright 2012, Brian Swetland <swetland@frotz.net>
 // Licensed under the Apache License, Version 2.0.
 
-module vga40x30x2(
+module vga40x30x2 #(
+	parameter BPP = 2
+)(
 	input clk25m,
-	output [1:0]red,
-	output [1:0]grn,
-	output [1:0]blu,
+	output [BPP-1:0]red,
+	output [BPP-1:0]grn,
+	output [BPP-1:0]blu,
 	output hs,
 	output vs,
 	output fr,
@@ -13,39 +15,35 @@ module vga40x30x2(
 	input [10:0]vram_waddr,
 	input [7:0]vram_wdata,
 	input vram_we
-	);
-
-wire [3:0]r;
-wire [3:0]g;
-wire [3:0]b;
+);
 
 wire newline;
 wire advance;
 wire [7:0]line;
-wire[11:0]pixel;
+wire [(3*BPP)-1:0]pixel;
 
-vga vga0(
+vga #(
+	.BPP(BPP)
+	) vga0 (
 	.clk(clk25m),
 	.hs(hs),
 	.vs(vs),
 	.fr(fr),
-	.r(r),
-	.g(g),
-	.b(b),
+	.r(red),
+	.g(grn),
+	.b(blu),
 	.newline(newline),
 	.advance(advance),
 	.line(line),
 	.pixel(pixel)
 	);
 
-assign red = r[3:2];
-assign grn = g[3:2];
-assign blu = b[3:2];
-
 wire [10:0]vram_raddr;
 wire [7:0]vram_rdata;
 
-pixeldata pixeldata0(
+pixeldata #(
+	.BPP(BPP)
+	) pixeldata0 (
 	.clk(clk25m),
 	.newline(newline),
 	.advance(advance),
