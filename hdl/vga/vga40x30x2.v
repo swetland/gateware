@@ -11,6 +11,7 @@ module vga40x30x2 #(
 	output hs,
 	output vs,
 	output fr,
+	output active,
 	input vram_clk,
 	input [10:0]vram_waddr,
 	input [7:0]vram_wdata,
@@ -37,6 +38,8 @@ vga #(
 	.line(line),
 	.pixel(pixel)
 	);
+
+assign active = advance;
 
 wire [10:0]vram_raddr;
 wire [7:0]vram_rdata;

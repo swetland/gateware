@@ -27,6 +27,7 @@ vga40x30x2 vga(
 	.hs(vga_hsync),
 	.vs(vga_vsync),
 	.fr(vga_frame),
+	.active(),
 	.vram_waddr(11'b0),
 	.vram_wdata(8'b0),
 	.vram_we(1'b0),

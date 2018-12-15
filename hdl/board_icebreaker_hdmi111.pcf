@@ -1,0 +1,22 @@
+set_io clk12m_in 35
+
+# pmod1b
+set_io hdmi_clk 38
+set_io hdmi_hsync 34
+set_io hdmi_vsync 28
+set_io hdmi_de 32
+set_io hdmi_red 42
+set_io hdmi_grn 43
+set_io hdmi_blu 36
+
+set_io spi_miso 14
+set_io spi_mosi 17
+set_io spi_clk 15
+set_io spi_cs 16
+
+set_io uart_rx 6
+set_io uart_tx 9
+
+set_io led_red 11
+set_io led_grn 37
+

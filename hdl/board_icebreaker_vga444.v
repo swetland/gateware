@@ -25,6 +25,8 @@ system_cpu16_vga40x30 #(
 	.vga_blu(vga_blu),
 	.vga_hsync(vga_hsync),
 	.vga_vsync(vga_vsync),
+	.vga_active(),
+	.vga_clk(),
 	.spi_mosi(),
 	.spi_miso(),
 	.spi_clk(),

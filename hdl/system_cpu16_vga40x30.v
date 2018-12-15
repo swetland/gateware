@@ -14,6 +14,8 @@ module system_cpu16_vga40x30 #(
 	output [BPP-1:0]vga_blu,
 	output vga_hsync,
 	output vga_vsync,
+	output vga_active,
+	output vga_clk,
 	input spi_mosi,
 	output spi_miso,
 	input spi_clk,
@@ -180,11 +182,14 @@ vga40x30x2 #(
 	.hs(vga_hsync),
 	.vs(vga_vsync),
 	.fr(),
+	.active(vga_active),
 	.vram_waddr(waddr[10:0]),
 	.vram_wdata(wdata[7:0]),
 	.vram_we(we & w_cs_vram),
 	.vram_clk(sys_clk)
 	);
+
+assign vga_clk = clk25m;
 
 // hack: flip display from blue to red when CPU is held in reset
 assign vga_red = cpu_reset ? vb : vr;
