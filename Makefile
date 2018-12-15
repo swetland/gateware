@@ -38,11 +38,15 @@ out/d16: src/d16v5.c
 	@mkdir -p out
 	gcc -g -Wall -O1 -o out/d16 -DSTANDALONE=1 src/d16v5.c
 
+out/udebug: src/udebug.c
+	@mkdir -p out
+	gcc -g -Wall -Wno-unused-result -O1 -o out/udebug src/udebug.c
+
 out/icetool: src/icetool.c src/ftdi.c src/ftdi.h
 	@mkdir -p out
 	gcc -g -Wall -O1 -o out/icetool src/icetool.c src/ftdi.c -lusb-1.0 -lrt
 
-tools:: out/a16 out/d16 out/icetool
+tools:: out/a16 out/d16 out/icetool out/udebug
 
 build-all-buildable:: $(ALL_BUILDS) tools
 
