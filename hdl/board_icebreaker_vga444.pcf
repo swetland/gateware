@@ -22,4 +22,10 @@ set_io spi_cs 16
 
 set_io out1 32
 set_io out2 28
-set_io uart_tx 37
+
+set_io uart_rx 6
+set_io uart_tx 9
+
+set_io led_red 11
+set_io led_grn 37
+

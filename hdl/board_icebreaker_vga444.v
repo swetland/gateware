@@ -8,6 +8,10 @@ module top(
 	output [3:0]vga_blu,
 	output vga_hsync,
 	output vga_vsync,
+	input uart_rx,
+	output uart_tx,
+	output led_red,
+	output led_grn,
 	output out1,
 	output out2
 	);
@@ -25,6 +29,10 @@ system_cpu16_vga40x30 #(
 	.spi_miso(),
 	.spi_clk(),
 	.spi_cs(),
+	.uart_rx(uart_rx),
+	.uart_tx(uart_tx),
+	.led_red(led_red),
+	.led_grn(led_grn),
 	.out1(out1),
 	.out2(out2)
 	);

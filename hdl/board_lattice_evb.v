@@ -29,6 +29,10 @@ system_cpu16_vga40x30 #(
 	.spi_miso(spi_miso),
 	.spi_clk(spi_clk),
 	.spi_cs(spi_cs),
+	.uart_rx(1'b0),
+	.uart_tx(),
+	.led_grn(),
+	.led_red(),
 	.out1(out1),
 	.out2(out2)
 	);

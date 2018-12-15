@@ -18,6 +18,10 @@ module system_cpu16_vga40x30 #(
 	output spi_miso,
 	input spi_clk,
 	input spi_cs,
+	input uart_rx,
+	output uart_tx,
+	output led_red,
+	output led_grn,
 	output out1,
 	output out2
 );
@@ -113,6 +117,7 @@ wire [15:0]dbg_waddr;
 wire [15:0]dbg_wdata;
 wire dbg_we;
 
+`ifdef WITH_SPI_DEBUG
 spi_debug_ifc sdi(
 	.spi_clk(spi_clk),
 	.spi_cs_i(spi_cs),
@@ -123,6 +128,18 @@ spi_debug_ifc sdi(
 	.sys_waddr_o(dbg_waddr),
 	.sys_wdata_o(dbg_wdata)
 	);
+`else
+uart_debug_ifc uart(
+	.sys_clk(sys_clk),
+	.sys_wr(dbg_we),
+	.sys_waddr(dbg_waddr),
+	.sys_wdata(dbg_wdata),
+	.uart_rx(uart_rx),
+	.uart_tx(uart_tx),
+	.led_red(led_red),
+	.led_grn(led_grn)
+	);
+`endif	
 
 // debug interface has priority over cpu writes
 wire we = dbg_we | dat_wr_req;
