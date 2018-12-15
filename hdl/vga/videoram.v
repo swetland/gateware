@@ -3,6 +3,8 @@
 //
 // sync sram with independent read/write addressing
 
+`default_nettype none
+
 `timescale 1ns/1ns
 
 module videoram #(parameter DWIDTH=16, parameter AWIDTH=8) (

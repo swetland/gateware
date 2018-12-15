@@ -1,6 +1,8 @@
 // Copyright 2018, Brian Swetland <swetland@frotz.net>
 // Licensed under the Apache License, Version 2.0.
 
+`default_nettype none
+
 module cpu16_regs(
 	input clk,
 	input [2:0]asel,

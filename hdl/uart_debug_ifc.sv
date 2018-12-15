@@ -1,6 +1,8 @@
 // Copyright 2018, Brian Swetland <swetland@frotz.net>
 // Licensed under the Apache License, Version 2.0.
 
+`default_nettype none
+
 module uart_debug_ifc(
 	input sys_clk,
 	output sys_wr,

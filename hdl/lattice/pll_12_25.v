@@ -1,3 +1,5 @@
+`default_nettype none
+
 module pll_12_25(
 	input clk12m_in,
 	output clk12m_out,

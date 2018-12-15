@@ -1,6 +1,8 @@
 // Copyright 2015, Brian Swetland <swetland@frotz.net>
 // Licensed under the Apache License, Version 2.0.
 
+`default_nettype none
+
 module top(
 	input clk,
 	output reg[15:0]led

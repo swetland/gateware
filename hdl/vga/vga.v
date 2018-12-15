@@ -1,6 +1,8 @@
 // Copyright 2012, Brian Swetland <swetland@frotz.net>
 // Licensed under the Apache License, Version 2.0.
 
+`default_nettype none
+
 `timescale 1ns/1ns
 
 // Vert:  2xSync 30xBack 480xData 12xFront  -> 524 lines

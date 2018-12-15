@@ -1,6 +1,8 @@
 // Copyright 2018, Brian Swetland <swetland@frotz.net>
 // Licensed under the Apache License, Version 2.0.
 
+`default_nettype none
+
 // Captures up to 16K samples of 64 bits while trace_en
 // Plays them back over the uart when ~trace_en
 

@@ -1,6 +1,8 @@
 // Copyright 2012, Brian Swetland <swetland@frotz.net>
 // Licensed under the Apache License, Version 2.0.
 
+`default_nettype none
+
 module vga40x30x2 #(
 	parameter BPP = 2
 )(

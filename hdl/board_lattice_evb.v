@@ -1,6 +1,8 @@
 // Copyright 2018, Brian Swetland <swetland@frotz.net>
 // Licensed under the Apache License, Version 2.0.
 
+`default_nettype none
+
 module top(
 	input clk12m_in,
 	output [1:0]vga_red,

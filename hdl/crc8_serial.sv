@@ -1,6 +1,8 @@
 // Copyright 2018, Brian Swetland <swetland@frotz.net>
 // Licensed under the Apache License, Version 2.0.
 
+`default_nettype none
+
 // 0x9C 10011100x // koopman notation (low bit implied)
 // 0x39 x00111001 // truncated notation (high bit implied)
 

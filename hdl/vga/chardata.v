@@ -9,6 +9,8 @@
 //
 // vram_addr/vram_data: connect to sync sram
 
+`default_nettype none
+
 `timescale 1ns/1ns
 
 module pixeldata #(

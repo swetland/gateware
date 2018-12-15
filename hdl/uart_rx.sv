@@ -1,6 +1,8 @@
 // Copyright 2018, Brian Swetland <swetland@frotz.net>
 // Licensed under the Apache License, Version 2.0.
 
+`default_nettype none
+
 // Assumes clk is 12M and baudrate is 1M
 // TODO: parameterize this a bit
 

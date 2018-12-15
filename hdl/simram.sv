@@ -1,6 +1,8 @@
 // Copyright 2015, Brian Swetland <swetland@frotz.net>
 // Licensed under the Apache License, Version 2.0.
 
+`default_nettype none
+
 `timescale 1ns / 1ps
 
 import "DPI-C" function void dpi_mem_write(int addr, int data);
