@@ -1,0 +1,5 @@
+
+PROJECT_TYPE := verilator-sim
+
+PROJECT_SRCS := hdl/eth_crc32_test.sv hdl/eth_crc32_2.sv hdl/eth_crc32_8.sv
+
