@@ -46,7 +46,11 @@ out/icetool: src/icetool.c src/ftdi.c src/ftdi.h
 	@mkdir -p out
 	gcc -g -Wall -O1 -o out/icetool src/icetool.c src/ftdi.c -lusb-1.0 -lrt
 
-tools:: out/a16 out/d16 out/icetool out/udebug
+out/crctool: src/crctool
+	@mkdir -p out
+	gcc -g -Wall -O1 -o out/crctool src/crctool.c
+
+tools:: out/a16 out/d16 out/icetool out/udebug out/crctool
 
 build-all-buildable:: $(ALL_BUILDS) tools
 
