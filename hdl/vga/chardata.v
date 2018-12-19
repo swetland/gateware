@@ -14,19 +14,17 @@
 `timescale 1ns/1ns
 
 module pixeldata #(
-	parameter BPP = 2
+	parameter BPP = 2,
+	parameter RGB = 0
 )(
 	input clk,
 	input newline,
 	input advance,
 	input [7:0] line,
 	output [(3*BPP)-1:0] pixel,
-	input [7:0] vram_data,
+	input [(RGB*8)+7:0] vram_data,
 	output [10:0] vram_addr
 );
-
-wire [(3*BPP)-1:0]FG = { 3*BPP { 1'b1 }};
-wire [(3*BPP)-1:0]BG = { { 2*BPP { 1'b0 }}, { BPP { 1'b1 }} };
 
 reg [7:0] pattern_rom [0:1023];
 
@@ -54,8 +52,23 @@ reg [5:0]xpos = 6'b0;
 reg [3:0]ppos = 4'b0;
 reg [15:0]pattern = 16'b0;
 
-reg [7:0]cdata;
+reg [(RGB*8)+7:0]cdata;
 reg [7:0]pdata;
+reg [2:0]fg;
+reg [2:0]bg;
+
+reg set_fg_bg;
+
+wire [(3*BPP)-1:0]FG;
+wire [(3*BPP)-1:0]BG;
+
+if (RGB) begin
+	assign FG = {{BPP{fg[2]}},{BPP{fg[1]}},{BPP{fg[0]}}};
+	assign BG = {{BPP{bg[2]}},{BPP{bg[1]}},{BPP{bg[0]}}};
+end else begin
+	assign FG = { 3*BPP { 1'b1 }};
+	assign BG = { { 2*BPP { 1'b0 }}, { BPP { 1'b1 }} };
+end
 
 // generate vram address by using the high bits of the display
 // line and the local xpos character counter
@@ -87,6 +100,7 @@ wire [15:0]pdata2x = {
 assign pixel = pattern[15] ? FG : BG;
 
 always_comb begin
+	set_fg_bg = 1'b0;
 	next_xpos = xpos;
 	next_ppos = ppos;
 	next_pattern = pattern;
@@ -109,6 +123,7 @@ always_comb begin
 		if (ppos == 4'hF) begin
 			// advance to next pattern (preloaded in pdata)
 			next_pattern = pdata2x;
+			set_fg_bg = 1'b1;
 		end else begin
 			// advance to the next bit in the current pattern
 			next_pattern = { pattern[14:0], 1'b0 };
@@ -122,8 +137,10 @@ always_comb begin
 	end else begin
 		// handle the final step of preloading the pattern
 		// for xpos 0 (between newline=1 and advance=1)
-		if (load_pattern)
+		if (load_pattern) begin
 			next_pattern = pdata2x;
+			set_fg_bg = 1'b1;
+		end
 	end
 end
 
@@ -140,6 +157,15 @@ always_ff @(posedge clk) begin
 		cdata <= vram_data;
 	if (load_pdata)
 		pdata <= prom_data;
+end
+
+if (RGB) begin
+	always_ff @(posedge clk) begin
+		if (set_fg_bg) begin
+			fg <= cdata[14:12];
+			bg <= cdata[10:8];
+		end
+	end
 end
 
 endmodule

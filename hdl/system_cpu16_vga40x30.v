@@ -175,7 +175,8 @@ wire [BPP-1:0]vg;
 wire [BPP-1:0]vb;
 
 vga40x30x2 #(
-	.BPP(BPP)
+	.BPP(BPP),
+	.RGB(0)
 	) vga (
 	.clk25m(clk25m),
 	.red(vr),
@@ -186,7 +187,7 @@ vga40x30x2 #(
 	.fr(),
 	.active(vga_active),
 	.vram_waddr(waddr[10:0]),
-	.vram_wdata(wdata[7:0]),
+	.vram_wdata(wdata[15:0]),
 	.vram_we(we & w_cs_vram),
 	.vram_clk(sys_clk)
 	);

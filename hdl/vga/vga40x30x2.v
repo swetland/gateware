@@ -4,7 +4,8 @@
 `default_nettype none
 
 module vga40x30x2 #(
-	parameter BPP = 2
+	parameter BPP = 2,
+	parameter RGB = 0
 )(
 	input clk25m,
 	output [BPP-1:0]red,
@@ -16,7 +17,7 @@ module vga40x30x2 #(
 	output active,
 	input vram_clk,
 	input [10:0]vram_waddr,
-	input [7:0]vram_wdata,
+	input [15:0]vram_wdata,
 	input vram_we
 );
 
@@ -44,10 +45,11 @@ vga #(
 assign active = advance;
 
 wire [10:0]vram_raddr;
-wire [7:0]vram_rdata;
+wire [(RGB*8)+7:0]vram_rdata;
 
 pixeldata #(
-	.BPP(BPP)
+	.BPP(BPP),
+	.RGB(RGB)
 	) pixeldata0 (
 	.clk(clk25m),
 	.newline(newline),
@@ -58,14 +60,14 @@ pixeldata #(
 	.vram_addr(vram_raddr)
 	);
 
-videoram #(8,11) vram(
+videoram #((RGB*8)+8,11) vram(
 	.rclk(clk25m),
 	.re(1'b1),
 	.rdata(vram_rdata),
 	.raddr(vram_raddr),
 	.wclk(vram_clk),
 	.we(vram_we),
-	.wdata(vram_wdata[7:0]),
+	.wdata(vram_wdata[(RGB*8)+7:0]),
 	.waddr(vram_waddr[10:0])
 	);
 
