@@ -1,0 +1,6 @@
+
+PROJECT_TYPE := nextpnr-ice40
+
+PROJECT_SRCS := hdl/icebreaker_diags.sv hdl/board_icebreaker.pcf
+
+PROJECT_NEXTPNR_OPTS := --package sg48 --up5k 
