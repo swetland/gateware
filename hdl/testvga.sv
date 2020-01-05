@@ -31,7 +31,7 @@ vga40x30x2 vga(
 	.fr(vga_frame),
 	.active(),
 	.vram_waddr(11'b0),
-	.vram_wdata(8'b0),
+	.vram_wdata(16'b0),
 	.vram_we(1'b0),
 	.vram_clk(clk)
 	);
