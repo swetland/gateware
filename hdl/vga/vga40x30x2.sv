@@ -7,18 +7,18 @@ module vga40x30x2 #(
 	parameter BPP = 2,
 	parameter RGB = 0
 )(
-	input clk25m,
-	output [BPP-1:0]red,
-	output [BPP-1:0]grn,
-	output [BPP-1:0]blu,
-	output hs,
-	output vs,
-	output fr,
-	output active,
-	input vram_clk,
-	input [10:0]vram_waddr,
-	input [15:0]vram_wdata,
-	input vram_we
+	input wire clk25m,
+	output wire [BPP-1:0]red,
+	output wire [BPP-1:0]grn,
+	output wire [BPP-1:0]blu,
+	output wire hs,
+	output wire vs,
+	output wire fr,
+	output wire active,
+	input wire vram_clk,
+	input wire [10:0]vram_waddr,
+	input wire [15:0]vram_wdata,
+	input wire vram_we
 );
 
 wire newline;

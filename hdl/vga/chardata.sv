@@ -17,13 +17,13 @@ module pixeldata #(
 	parameter BPP = 2,
 	parameter RGB = 0
 )(
-	input clk,
-	input newline,
-	input advance,
-	input [7:0] line,
-	output [(3*BPP)-1:0] pixel,
-	input [(RGB*8)+7:0] vram_data,
-	output [10:0] vram_addr
+	input wire clk,
+	input wire newline,
+	input wire advance,
+	input wire [7:0] line,
+	output wire [(3*BPP)-1:0] pixel,
+	input wire [(RGB*8)+7:0] vram_data,
+	output wire [10:0] vram_addr
 );
 
 reg [7:0] pattern_rom [0:1023];

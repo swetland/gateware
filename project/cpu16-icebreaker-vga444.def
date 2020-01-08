@@ -5,7 +5,7 @@ PROJECT_SRCS := hdl/board_icebreaker_vga444.v hdl/board_icebreaker_vga444.pcf
 PROJECT_SRCS += hdl/system_cpu16_vga40x30.v hdl/lattice/pll_12_25.v
 #PROJECT_SRCS += hdl/spi_debug_ifc.v
 PROJECT_SRCS += hdl/uart_debug_ifc.sv hdl/uart_rx.sv hdl/crc8_serial.sv
-PROJECT_SRCS += hdl/vga/vga40x30x2.v hdl/vga/vga.v hdl/vga/videoram.v hdl/vga/chardata.v
+PROJECT_SRCS += hdl/vga/vga40x30x2.sv hdl/vga/vga.sv hdl/vga/videoram.sv hdl/vga/chardata.sv
 PROJECT_SRCS += hdl/cpu16.sv hdl/cpu16_regs.sv hdl/cpu16_alu.sv
 
 PROJECT_NEXTPNR_OPTS := --package sg48 --up5k 

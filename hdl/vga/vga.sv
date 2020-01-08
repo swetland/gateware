@@ -13,18 +13,18 @@
 module vga #(
 	parameter BPP = 4
 )(
-	input clk,
-	output hs,
-	output vs,
-	output fr,
-	output [BPP-1:0] r,
-	output [BPP-1:0] g,
-	output [BPP-1:0] b,
+	input wire clk,
+	output wire hs,
+	output wire vs,
+	output wire fr,
+	output wire [BPP-1:0] r,
+	output wire [BPP-1:0] g,
+	output wire [BPP-1:0] b,
 
-	output newline,
-	output advance,
-	output [7:0] line,
-	input [(3*BPP)-1:0] pixel
+	output wire newline,
+	output wire advance,
+	output wire [7:0] line,
+	input wire [(3*BPP)-1:0] pixel
 );
 
 reg hsync = 1'b0;

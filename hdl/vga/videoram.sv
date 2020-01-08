@@ -8,12 +8,14 @@
 `timescale 1ns/1ns
 
 module videoram #(parameter DWIDTH=16, parameter AWIDTH=8) (
-	input wclk, input we,
-	input [AWIDTH-1:0] waddr,
-	input [DWIDTH-1:0] wdata,
-	input rclk, input re,
-	input [AWIDTH-1:0] raddr,
-	output [DWIDTH-1:0] rdata
+	input wire wclk,
+	input wire we,
+	input wire [AWIDTH-1:0] waddr,
+	input wire [DWIDTH-1:0] wdata,
+	input wire rclk,
+	input wire re,
+	input wire [AWIDTH-1:0] raddr,
+	output wire [DWIDTH-1:0] rdata
 	);
 
 reg [DWIDTH-1:0] mem[0:2**AWIDTH-1];
