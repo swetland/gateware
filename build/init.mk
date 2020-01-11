@@ -10,12 +10,21 @@ YOSYS := yosys
 ICEPACK := icepack
 ECPPACK := ecppack
 
+VIVADOPATH := /work/xilinx/Vivado/2019.2
+XSDKPATH := /work/xilinx/SDK/2019.2
+
+VIVADO := $(VIVADOPATH)/bin/vivado
+XELAB := $(VIVADOPATH)/bin/xelab
+XSIM := $(VIVADOPATH)/bin/xsim
+XMD := $(XSDKPATH)/bin/xmd
+
 ALL_BUILDS :=
 ALL_TARGETS :=
 
 define project
 $(eval PROJECT_DEF := $1)\
 $(eval PROJECT_TYPE :=)\
+$(eval PROJECT_PART :=)\
 $(eval PROJECT_SRCS :=)\
 $(eval PROJECT_VOPTS :=)\
 $(eval PROJECT_NEXTPNR_OPTS :=)\

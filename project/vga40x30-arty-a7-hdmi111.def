@@ -1,0 +1,9 @@
+
+PROJECT_TYPE := vivado
+
+PROJECT_SRCS := hdl/arty_a7_hdmi111.sv hdl/arty_a7_35.xdc
+PROJECT_SRCS += hdl/xilinx/mmcm_100m_25m.sv
+PROJECT_SRCS += hdl/vga/vga40x30x2.sv hdl/vga/vga.sv hdl/vga/videoram.sv hdl/vga/chardata.sv
+
+PROJECT_VIVADO_OPTS :=
+PROJECT_PART := xc7a35ticsg324-1L
