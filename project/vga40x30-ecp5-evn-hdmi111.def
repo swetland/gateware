@@ -1,0 +1,10 @@
+
+PROJECT_TYPE := nextpnr-ecp5
+
+PROJECT_SRCS := hdl/ecp5_evn_hdmi111.sv hdl/ecp5_evn_hdmi111.lpf
+PROJECT_SRCS += hdl/lattice/ecp5_pll_12_25.v
+#PROJECT_SRCS += hdl/spi_debug_ifc.v
+#PROJECT_SRCS += hdl/uart_debug_ifc.sv hdl/uart_rx.sv hdl/crc8_serial.sv
+PROJECT_SRCS += hdl/vga/vga40x30x2.sv hdl/vga/vga.sv hdl/vga/videoram.sv hdl/vga/chardata.sv
+
+PROJECT_NEXTPNR_OPTS := --um5g-85k --package CABGA381

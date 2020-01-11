@@ -5,8 +5,10 @@
 
 VERILATOR := verilator
 NEXTPNR_ICE40 := nextpnr-ice40
+NEXTPNR_ECP5 := nextpnr-ecp5
 YOSYS := yosys
 ICEPACK := icepack
+ECPPACK := ecppack
 
 ALL_BUILDS :=
 ALL_TARGETS :=
