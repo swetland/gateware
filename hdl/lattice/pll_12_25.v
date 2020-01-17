@@ -38,7 +38,9 @@ defparam pll_inst.SHIFTREG_DIV_MODE = 2'b00;
 defparam pll_inst.PLLOUT_SELECT_PORTB = "GENCLK";
 defparam pll_inst.ENABLE_ICEGATE_PORTA = 1'b0;
 defparam pll_inst.ENABLE_ICEGATE_PORTB = 1'b0;
-
+`else
+assign clk12m_out = clk12m_in;
+assign clk25m_out = clk12m_in;
 `endif
 
 endmodule

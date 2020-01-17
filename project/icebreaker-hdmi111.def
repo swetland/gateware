@@ -1,0 +1,9 @@
+
+PROJECT_TYPE := nextpnr-ice40
+
+PROJECT_SRCS := hdl/icebreaker_hdmi111.sv hdl/board_icebreaker_hdmi111.pcf
+PROJECT_SRCS += hdl/lattice/pll_12_25.v
+PROJECT_SRCS += hdl/uart_debug_ifc.sv hdl/uart_rx.sv hdl/crc8_serial.sv
+PROJECT_SRCS += hdl/display/display.sv hdl/display/display_timing.sv 
+
+PROJECT_NEXTPNR_OPTS := --package sg48 --up5k 
