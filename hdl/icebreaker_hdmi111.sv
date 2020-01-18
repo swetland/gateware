@@ -67,7 +67,7 @@ display #(
 	.frame(),
 	.wclk(clk25m),
 	.waddr(dbg_waddr[11:0]),
-	.wdata(dbg_wdata[7:0]),
+	.wdata(dbg_wdata[15:0]),
 	.we(dbg_we)
 );
 

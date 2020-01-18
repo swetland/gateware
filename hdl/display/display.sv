@@ -4,6 +4,7 @@
 `default_nettype none
 
 module display #(
+	// bits per pixel for rgb output
 	parameter BPP = 2,
 
 	// WIDE=0 selects 80x30, 2.5KB VRAM
@@ -14,6 +15,10 @@ module display #(
 	// MINIFONT=1 selects quarter-ascii (uppercase only) 2KB PROM
 	// (0..31 map to 32..63, 96..127 map to 64..95)
 	parameter MINIFONT = 0,
+
+	// RGB=1 enables fg/bg color storage in video ram
+	//       (doubles the size of video ram)
+	parameter RGB = 0,
 
 	// horizontal timing (all values -1)
 	parameter HZNT_FRONT = 15,
@@ -39,7 +44,7 @@ module display #(
 
 	input wire wclk,
 	input wire [11:0]waddr,
-	input wire [7:0]wdata,
+	input wire [15:0]wdata,
 	input wire we
 );
 
@@ -47,6 +52,7 @@ localparam PWIDTH = WIDE ? 16 : 8;
 localparam PCOUNT = WIDE ? 15 : 7;
 localparam VRAMSZ = WIDE ? 1536 : 2560;
 localparam VRAMAW = WIDE ? 11 : 12;
+localparam VRAMDW = RGB ? 16 : 8;
 
 localparam PROMSZ = MINIFONT ? 1024 : 2048;
 localparam PROMAW = MINIFONT ? 10 : 11;
@@ -86,7 +92,7 @@ display_timing #(
 
 // VIDEO RAM
 //
-reg [7:0] video_ram[0:VRAMSZ-1];
+reg [VRAMDW-1:0] video_ram[0:VRAMSZ-1];
 
 `ifdef HEX_PATHS
 initial $readmemh("hdl/display/vram-40x30.hex", video_ram);
@@ -96,11 +102,11 @@ initial $readmemh("vram-40x30.hex", video_ram);
 
 wire re;
 wire [11:0] raddr;
-reg [7:0] vdata;
+reg [VRAMDW-1:0] vdata;
 
 always_ff @(posedge wclk) begin
 	if (we)
-		video_ram[waddr[VRAMAW-1:0]] <= wdata;
+		video_ram[waddr[VRAMAW-1:0]] <= wdata[VRAMDW-1:0];
 end
 
 always_ff @(posedge clk) begin
@@ -146,6 +152,7 @@ reg [3:0]pattern_count_next;
 reg [3:0]pattern_count_sub1;
 reg pattern_count_done;
 
+// pattern downcounter underflow (_done) used to trigger next character
 assign { pattern_count_done, pattern_count_sub1 } = { 1'b0, pattern_count } - 5'd1;
 
 reg load_character_addr = 1'b0;
@@ -159,6 +166,7 @@ wire [11:0]vram_raddr_add1 = vram_raddr + 12'd1;
 assign raddr = vram_raddr;
 assign re = load_character_addr;
 
+// Map pattern rom data to pattern 1:1 or 1:2 depending on WIDE
 reg [PWIDTH-1:0]pattern_expand;
 generate
 	if (WIDE) assign pattern_expand = {
@@ -176,7 +184,7 @@ reg preload2_next;
 reg preload3 = 1'b0;
 reg preload3_next;
 
-// high bits of y position x40 or x80
+// start of row in vram is high bits of y position x40 or x80
 wire [11:0]vram_rowbase;
 generate
 if (WIDE) assign vram_rowbase = { 3'b0, pxl_y[9:4], 3'b0 } + { pxl_y[9:4], 5'b0 };
@@ -227,8 +235,37 @@ always_ff @(posedge clk) begin
 	vram_raddr <= vram_raddr_next;
 end
 
+// in RGB mode, we extract fg and bg 1bpp rgb colors from
+// the upper 8 bits of video ram and use those instead of
+// the hardcoded white and blue
+generate
+if (RGB) begin
+reg [2:0]fg;
+reg [2:0]fg_next;
+reg [2:0]bg;
+reg [2:0]bg_next;
+
+always_comb begin
+	fg_next = fg;
+	bg_next = bg;
+	if ((pxl_accept & pattern_count_done) | preload3) begin
+		fg_next = vdata[14:12];
+		bg_next = vdata[10:8];
+	end
+end
+
+always_ff @(posedge clk) begin
+	fg <= fg_next;
+	bg <= bg_next;
+end
+assign red = pattern[PWIDTH-1] ? {BPP{fg[2]}} : {BPP{bg[2]}};
+assign grn = pattern[PWIDTH-1] ? {BPP{fg[1]}} : {BPP{bg[1]}};
+assign blu = pattern[PWIDTH-1] ? {BPP{fg[0]}} : {BPP{bg[0]}};
+end else begin
 assign red = active ? { BPP {pattern[PWIDTH-1]} } : {BPP{1'b0}};
 assign grn = active ? { BPP {pattern[PWIDTH-1]} } : {BPP{1'b0}};
 assign blu = active ? { BPP {1'b1} } : {BPP{1'b0}};
+end
+endgenerate
 
 endmodule
