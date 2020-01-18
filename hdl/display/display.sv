@@ -8,7 +8,7 @@ module display #(
 
 	// WIDE=0 selects 80x30, 2.5KB VRAM
 	// WIDE=1 selects 40x30, 1.5KB VRAM
-	parameter WIDE = 0,
+	parameter WIDE = 1,
 
 	// MINIFONT=0 selects half-ascii (0 through 127) 4KB PROM
 	// MINIFONT=1 selects quarter-ascii (uppercase only) 2KB PROM
@@ -124,15 +124,13 @@ else initial $readmemh("fontdata-8x16x128.hex", pattern_rom);
 endgenerate
 `endif
 
-reg [7:0]character_id;
-
 wire [PROMAW-1:0] prom_addr;
 
 // generate pattern rom address based on character id
-// and the low bits of the display line
+// from vram and the low bits of the display line
 generate
-if (MINIFONT) assign prom_addr = { character_id[6], character_id[4:0], pxl_y[3:0] };
-else assign prom_addr = { character_id[6:0], pxl_y[3:0] };
+if (MINIFONT) assign prom_addr = { vdata[6], vdata[4:0], pxl_y[3:0] };
+else assign prom_addr = { vdata[6:0], pxl_y[3:0] };
 endgenerate
 
 reg [7:0]prom_data;
@@ -155,8 +153,7 @@ reg load_character_addr_next;
 
 reg [11:0]vram_raddr;
 reg [11:0]vram_raddr_next;
-reg [11:0]vram_saddr;
-reg [11:0]vram_saddr_next;
+
 wire [11:0]vram_raddr_add1 = vram_raddr + 12'd1;
 
 assign raddr = vram_raddr;
@@ -172,27 +169,29 @@ generate
 	else assign pattern_expand = prom_data;
 endgenerate
 
+reg preload1 = 1'b0;
+reg preload1_next;
+reg preload2 = 1'b0;
+reg preload2_next;
+reg preload3 = 1'b0;
+reg preload3_next;
+
+// high bits of y position x40 or x80
+wire [11:0]vram_rowbase;
+generate
+if (WIDE) assign vram_rowbase = { 3'b0, pxl_y[9:4], 3'b0 } + { pxl_y[9:4], 5'b0 };
+else assign vram_rowbase = { 2'b0, pxl_y[9:4], 4'b0 } + { pxl_y[9:4], 6'b0 };
+endgenerate
+
 always_comb begin
 	vram_raddr_next = vram_raddr;
-	vram_saddr_next = vram_saddr;
 	load_character_addr_next = 1'b0;
 	pattern_next = pattern;
 	pattern_count_next = pattern_count;
+	preload1_next = 1'b0;
+	preload2_next = preload1;
+	preload3_next = preload2;
 
-	if (start_frame) begin
-		vram_raddr_next = 12'd0;
-	end
-	if (start_line) begin
-		load_character_addr_next = 1'b1;
-		// if we're at the first line of a character, save
-		// the vram address, otherwise rewind it back to the
-		// last start of line
-		if (pxl_y[3:0] == 4'b0000) begin
-			vram_saddr_next = vram_raddr;
-		end else begin
-			vram_raddr_next = vram_saddr;
-		end
-	end
 	if (pxl_accept) begin
 		if (pattern_count_done) begin
 			pattern_next = pattern_expand;
@@ -203,16 +202,29 @@ always_comb begin
 			pattern_next = { pattern[PWIDTH-2:0], 1'b0 };
 			pattern_count_next = pattern_count_sub1;
 		end
+	end else begin
+		if (start_line) begin
+			vram_raddr_next = vram_rowbase;
+			load_character_addr_next = 1'b1;
+			preload1_next = 1'b1;
+		end
+		if (preload3) begin
+			pattern_next = pattern_expand;
+			pattern_count_next = PCOUNT;
+			vram_raddr_next = vram_raddr_add1;
+			load_character_addr_next = 1'b1;
+		end
 	end
 end
 
 always_ff @(posedge clk) begin
 	pattern <= pattern_next;
 	pattern_count <= pattern_count_next;
-	load_character_addr = load_character_addr_next;
+	preload1 <= preload1_next;
+	preload2 <= preload2_next;
+	preload3 <= preload3_next;
+	load_character_addr <= load_character_addr_next;
 	vram_raddr <= vram_raddr_next;
-	vram_saddr <= vram_saddr_next;
-	character_id <= vdata;
 end
 
 assign red = active ? { BPP {pattern[PWIDTH-1]} } : {BPP{1'b0}};
