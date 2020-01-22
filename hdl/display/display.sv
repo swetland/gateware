@@ -7,6 +7,9 @@ module display #(
 	// bits per pixel for rgb output
 	parameter BPP = 2,
 
+	// HEXMODE=1 skip even cells, display odd cells in hex, 2-wide
+	parameter HEXMODE = 0,
+
 	// WIDE=0 selects 80x30, 2.5KB VRAM
 	// WIDE=1 selects 40x30, 1.5KB VRAM
 	parameter WIDE = 1,
@@ -118,25 +121,34 @@ end
 //
 reg [7:0] pattern_rom [0:PROMSZ-1];
 
-`ifdef HEX_PATHS
 generate
+`ifdef HEX_PATHS
 if (MINIFONT) initial $readmemh("hdl/display/fontdata-8x16x64.hex", pattern_rom);
 else initial $readmemh("hdl/display/fontdata-8x16x128.hex", pattern_rom);
-endgenerate
 `else
-generate
 if (MINIFONT) initial $readmemh("fontdata-8x16x64.hex", pattern_rom);
 else initial $readmemh("fontdata-8x16x128.hex", pattern_rom);
-endgenerate
 `endif
+endgenerate
 
 wire [PROMAW-1:0] prom_addr;
+
+wire [7:0]glyph;
+
+generate if(HEXMODE) begin
+hex2dec cvt(
+	.din(vram_raddr[0] ? vdata[3:0] : vdata[7:4]),
+	.dout(glyph)
+);
+end else begin
+assign glyph = vdata[7:0];
+end endgenerate
 
 // generate pattern rom address based on character id
 // from vram and the low bits of the display line
 generate
-if (MINIFONT) assign prom_addr = { vdata[6], vdata[4:0], pxl_y[3:0] };
-else assign prom_addr = { vdata[6:0], pxl_y[3:0] };
+if (MINIFONT) assign prom_addr = { glyph[6], glyph[4:0], pxl_y[3:0] };
+else assign prom_addr = { glyph[6:0], pxl_y[3:0] };
 endgenerate
 
 reg [7:0]prom_data;
@@ -163,11 +175,16 @@ reg [11:0]vram_raddr_next;
 
 wire [11:0]vram_raddr_add1 = vram_raddr + 12'd1;
 
+generate if (HEXMODE) begin
+assign raddr = { vram_raddr[11:1], 1'b0 };
+end else begin
 assign raddr = vram_raddr;
+end endgenerate
+
 assign re = load_character_addr;
 
 // Map pattern rom data to pattern 1:1 or 1:2 depending on WIDE
-reg [PWIDTH-1:0]pattern_expand;
+wire [PWIDTH-1:0]pattern_expand;
 generate
 	if (WIDE) assign pattern_expand = {
 		prom_data[7], prom_data[7], prom_data[6], prom_data[6],
@@ -269,3 +286,32 @@ end
 endgenerate
 
 endmodule
+
+
+
+module hex2dec(
+	input wire [3:0]din,
+	output reg [7:0]dout
+);
+always_comb begin
+	case (din)
+	4'h0: dout = 8'h30;
+	4'h1: dout = 8'h31;
+	4'h2: dout = 8'h32;
+	4'h3: dout = 8'h33;
+	4'h4: dout = 8'h34;
+	4'h5: dout = 8'h35;
+	4'h6: dout = 8'h36;
+	4'h7: dout = 8'h37;
+	4'h8: dout = 8'h38;
+	4'h9: dout = 8'h39;
+	4'hA: dout = 8'h41;
+	4'hB: dout = 8'h42;
+	4'hC: dout = 8'h43;
+	4'hD: dout = 8'h44;
+	4'hE: dout = 8'h45;
+	4'hF: dout = 8'h46;
+	endcase
+end
+endmodule
+
