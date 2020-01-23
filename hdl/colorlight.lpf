@@ -1,0 +1,42 @@
+FREQUENCY NET "phy_clk" 25 MHZ;
+FREQUENCY NET "phy0_rxc" 125 MHZ;
+
+fREQUENCY NET "clk250m" 250 MHZ;
+FREQUENCY NET "clk125m" 125 MHZ;
+
+LOCATE COMP "phy_clk" SITE "P3";
+LOCATE COMP "phy_reset_n" SITE "P4";
+
+LOCATE COMP "btn" SITE "R16";
+
+LOCATE COMP "phy_mdc" SITE "N5";
+LOCATE COMP "phy_mdio" SITE "P5";
+
+LOCATE COMP "phy0_gtxclk" SITE "G1";
+LOCATE COMP "phy0_txd[0]" SITE "G2";
+LOCATE COMP "phy0_txd[1]" SITE "H1";
+LOCATE COMP "phy0_txd[2]" SITE "J1";
+LOCATE COMP "phy0_txd[3]" SITE "J3";
+LOCATE COMP "phy0_tx_en" SITE "K1";
+LOCATE COMP "phy0_rxc" SITE "H2";
+LOCATE COMP "phy0_rxd[0]" SITE "K2";
+LOCATE COMP "phy0_rxd[1]" SITE "L1";
+LOCATE COMP "phy0_rxd[2]" SITE "N1";
+LOCATE COMP "phy0_rxd[3]" SITE "P1";
+LOCATE COMP "phy0_rx_dv" SITE "P2";
+
+LOCATE COMP "j1r0" SITE "B3";
+LOCATE COMP "j1g0" SITE "A2";
+LOCATE COMP "j1b0" SITE "B2";
+LOCATE COMP "j1r1" SITE "B1";
+LOCATE COMP "j1g1" SITE "C2";
+LOCATE COMP "j1b1" SITE "C1";
+LOCATE COMP "glb_e" SITE "J17";
+LOCATE COMP "glb_a" SITE "F1";
+LOCATE COMP "glb_b" SITE "F2";
+LOCATE COMP "glb_c" SITE "E1";
+LOCATE COMP "glb_d" SITE "E2";
+LOCATE COMP "glb_clk" SITE "C18";
+LOCATE COMP "glb_alat" SITE "J18";
+LOCATE COMP "glb_bln" SITE "H16";
+

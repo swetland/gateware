@@ -1,0 +1,9 @@
+PROJECT_TYPE := nextpnr-ecp5
+
+PROJECT_SRCS := hdl/colorlight.sv hdl/colorlight.lpf
+PROJECT_SRCS += hdl/lattice/ecp5_pll_25_125_250.v
+PROJECT_SRCS += hdl/ethernet/eth_rgmii_rx.sv hdl/ethernet/eth_rgmii_rx_glue_ecp5.sv
+PROJECT_SRCS += hdl/ethernet/eth_crc32_8.sv
+PROJECT_SRCS += hdl/display/display.sv hdl/display/display_timing.sv
+
+PROJECT_NEXTPNR_OPTS := --25k --package CABGA381 --speed 6
