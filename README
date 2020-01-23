@@ -1,0 +1,16 @@
+
+This is a collection of little open source FPGA hobby projects
+--------------------------------------------------------------
+
+The build system can target nextpnr-ice40, nextpnr-ecp5, (Lattice
+ICE40 and ECP5 family parts), verilator (simulation), and vivado
+(Xilinx parts).
+
+Projects are defined in project/*.def and all buildable projects
+can be listed with "make" and built with "make <projectname>" or
+"make all"
+
+Final build products are deposited in out/... and intermediate
+build products, logs, and so on, in out/-nextpnr-/{projectname}/...,
+out/-vsim-/{projectname}/..., etc.
+
