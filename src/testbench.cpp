@@ -34,19 +34,25 @@
 static unsigned memory[65536];
 
 void dpi_mem_write(int addr, int data) {
-	//fprintf(stderr,"WR %04x = %08x\n", addr, data);
+	//fprintf(stdout,"WR %08x = %08x\n", addr, data);
 	memory[addr & 0xFFFF] = data;
 }
 
 void dpi_mem_read(int addr, int *data) {
-	//fprintf(stderr,"RD %04x = %08x\n", addr, memory[addr & 0xFFFF]);
+	//fprintf(stdout,"RD %08x = %08x\n", addr, memory[addr & 0xFFFF]);
 	*data = (int) memory[addr & 0xFFFF];
+}
+
+int dpi_mem_read2(int addr) {
+	//fprintf(stdout,"Rd %08x = %08x\n", addr, memory[addr & 0xFFFF]);
+	return (int) memory[addr & 0xFFFF];
 }
 
 void loadmem(const char *fn) {
 	unsigned a = 0;
 	FILE *fp = fopen(fn, "r");
 	char buf[128];
+	memset(memory, 0xaa, sizeof(memory));
 	if (fp == NULL) {
 		fprintf(stderr, "warning: cannot load memory from '%s'\n", fn);
 		return;
@@ -70,6 +76,7 @@ void loadmem(const char *fn) {
 		} else {
 			sscanf(x, "%x", &n);
 		}
+		//fprintf(stderr,"mem[%08x] = %08x\n",a,n);
 		memory[a++] = n;
 		if (a == 4096) break;
 	}
@@ -110,6 +117,7 @@ static int vga_tick(int hs, int vs, int fr, int red, int grn, int blu) {
 		} else {
 			//fprintf(stderr, "VGA: frame %u did not change\n", vga_frames);
 		}
+		memset(vga_data[vga_active], 0xff, FRAME_BYTES);
 		vga_ticks = 0;
 		vga_frames++;
 		if (vga_frames == 5) {
