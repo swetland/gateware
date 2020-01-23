@@ -2,4 +2,4 @@
 PROJECT_TYPE := verilator-sim
 
 PROJECT_SRCS := hdl/testbench.sv hdl/simram.sv
-PROJECT_SRCS += hdl/cpu16.sv hdl/cpu16_regs.sv hdl/cpu16_alu.sv
+PROJECT_SRCS += hdl/cpu16/cpu16.sv hdl/cpu16/cpu16_regs.sv hdl/cpu16/cpu16_alu.sv
