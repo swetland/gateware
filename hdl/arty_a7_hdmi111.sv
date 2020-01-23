@@ -30,6 +30,7 @@ always_ff @(posedge clk25m) begin
 	led[3] <= btn[3];
 end
 
+`ifdef OLDECODE
 vga40x30x2 #(
     .BPP(1),
     .RGB(0)
@@ -47,5 +48,23 @@ vga40x30x2 #(
     .vram_wdata(0),
     .vram_we(0)
     );
-    
+`else
+display #(
+	.BPP(1)
+	) display0 (
+	.clk(clk25m),
+	.red(hdmi_r),
+	.grn(hdmi_g),
+	.blu(hdmi_b),
+	.hsync(hdmi_hs),
+	.vsync(hdmi_vs),
+	.active(hdmi_de),
+	.frame(),
+	.wclk(clk25m),
+	.waddr(0),
+	.wdata(0),
+	.we(0)
+);
+`endif
+
 endmodule
