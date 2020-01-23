@@ -9,7 +9,7 @@ module testbench(
 
 reg [8:0]packet[0:103];
 
-initial $readmemh("hdl/eth_crc32_testpacket.hex", packet);
+initial $readmemh("hdl/ethernet/eth_crc32_testpacket.hex", packet);
 
 reg [6:0]pktcount = 7'd0;
 reg rst = 1'b1;
