@@ -49,6 +49,45 @@ eth_rgmii_rx_glue glue (
 	.rx_data(rx_data)
 );
 
+// RAWMODE disables all processing and blindly passes packet
+// data bytes though. sop will be active for the first byte
+// of the preamble and eop will become active for one cycle
+// after the last byte of the FCS. crc_ok will always be 0.
+// 
+// `define ETH_RGMII_RX_RAW_MODE
+
+`ifdef ETH_RGMII_RX_RAW_MODE
+reg next_sop;
+reg next_eop;
+reg next_valid;
+
+always_comb begin
+	next_sop = 0;
+	next_eop = 0;
+	next_valid = valid;
+
+	if (rx_dv) begin
+		if (~valid) begin
+			next_sop = 1;
+			next_valid = 1;
+		end
+	end else begin
+		if (valid) begin
+			next_eop = 1;
+			next_valid = 0;
+		end
+	end
+end
+
+always_ff @(posedge rx_clk) begin
+	sop <= next_sop;
+	eop <= next_eop;
+	data <= rx_data;
+	valid <= next_valid;
+end
+
+`else
+
 wire [31:0]crc;
 
 localparam IDLE = 2'd0;
@@ -124,5 +163,6 @@ eth_crc32_8 crc32(
 	.din(rx_data),
 	.crc(crc)
 );
+`endif
 
 endmodule
