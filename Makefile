@@ -48,7 +48,7 @@ out/icetool: src/icetool.c src/ftdi.c src/ftdi.h
 	@mkdir -p out
 	gcc -g -Wall -O1 -o out/icetool src/icetool.c src/ftdi.c -lusb-1.0 -lrt
 
-out/crctool: src/crctool
+out/crctool: src/crctool.c
 	@mkdir -p out
 	gcc -g -Wall -O1 -o out/crctool src/crctool.c
 
