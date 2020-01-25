@@ -200,28 +200,25 @@ int main(int argc, char **argv) {
 
 	Vtestbench *testbench = new Vtestbench;
 	testbench->clk = 0;
+// first tick, line up with gtk's vert lines
+	testbench->eval();
 
 #ifdef TRACE
 	Verilated::traceEverOn(true);
 	VerilatedVcdC* tfp = new VerilatedVcdC;
 	testbench->trace(tfp, 99);
 	tfp->open(vcdname);
-#endif
-
-// first tick, line up with gtk's vert lines
-	testbench->eval();
-#ifdef TRACE
 	tfp->dump(now);
-	now += 10;
+#define SAVETRACE() tfp->dump(now)
+#else
+#define SAVETRACE() do {} while (0)
 #endif
 
 	while (!Verilated::gotFinish()) {
+		now += 5;
 		testbench->clk = 1;
 		testbench->eval();
-#ifdef TRACE
-		tfp->dump(now);
-		now += 5;
-#endif
+		SAVETRACE();
 #ifdef VGA
 		if (vga_tick(testbench->vga_hsync, testbench->vga_vsync,
 			     testbench->vga_frame, testbench->vga_red,
@@ -229,12 +226,10 @@ int main(int argc, char **argv) {
 			break;
 		}
 #endif
+		now += 5;
 		testbench->clk = 0;
 		testbench->eval();
-#ifdef TRACE
-		tfp->dump(now);
-		now += 5;
-#endif
+		SAVETRACE();
 	}
 #ifdef TRACE
 	tfp->close();
