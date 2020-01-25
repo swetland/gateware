@@ -12,6 +12,8 @@ help: list-all-targets
 
 all: build-all-buildable
 
+test: run-all-tests
+
 $(foreach p,$(wildcard project/*.def),$(call project,$p))
 
 clean::
@@ -54,6 +56,7 @@ tools:: out/a16 out/d16 out/icetool out/udebug out/crctool
 
 build-all-buildable:: $(ALL_BUILDS) tools
 
+run-all-tests:: $(patsubst %,%-vsim,$(filter test-%,$(ALL_BUILDS)))
 
 #### CPU16 TESTS ####
 

@@ -199,7 +199,8 @@ int main(int argc, char **argv) {
 	Verilated::randReset(2);
 
 	Vtestbench *testbench = new Vtestbench;
-	testbench->clk = 0;
+	testbench->clk = 1;
+
 // first tick, line up with gtk's vert lines
 	testbench->eval();
 
@@ -214,7 +215,16 @@ int main(int argc, char **argv) {
 #define SAVETRACE() do {} while (0)
 #endif
 
-	while (!Verilated::gotFinish()) {
+	while (!(testbench->done | testbench->error)) { //Verilated::gotFinish()) {
+		now += 5;
+		testbench->clk = 0;
+		testbench->eval();
+		SAVETRACE();
+#if 0
+		fprintf(stderr, "SDRAM data=%04x data__out=%04x data__en=%x\n",
+				testbench->sdram_data, testbench->sdram_data__out, testbench->sdram_data_en);
+#endif
+
 		now += 5;
 		testbench->clk = 1;
 		testbench->eval();
@@ -226,11 +236,11 @@ int main(int argc, char **argv) {
 			break;
 		}
 #endif
-		now += 5;
-		testbench->clk = 0;
-		testbench->eval();
-		SAVETRACE();
 	}
+
+	int status = testbench->error ? -1 : 0;
+	fprintf(stderr, "%s: %s\n", argv[0], testbench->error ? "FAIL" : "PASS");
+
 #ifdef TRACE
 	tfp->close();
 #endif
@@ -246,6 +256,6 @@ int main(int argc, char **argv) {
 		write(fd, memory, sizeof(memory));
 		close(fd);
 	}
-	return 0;
+	return status;
 }
 

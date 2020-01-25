@@ -14,7 +14,9 @@ module testbench(
 	output [3:0]vga_blu,
 	output vga_hsync,
 	output vga_vsync,
-	output vga_frame
+	output vga_frame,
+	output reg error = 0,
+	output reg done = 0
         );
 
 display #(

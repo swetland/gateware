@@ -4,7 +4,9 @@
 `default_nettype none
 
 module testbench(
-	input clk
+	input clk,
+	output reg error = 0,
+	output reg done = 0
 );
 
 reg [8:0]packet[0:103];
@@ -34,16 +36,18 @@ always_ff @(posedge clk) begin
 	if (~pktdone)
 		{ pktdone, pktdata } <= packet[pktcount];
 	pktcount <= pktcount + 7'd1;
-	$display("WR=", wr, " DONE=", pktdone, " IDX=", pktcount, " DATA=", pktdata, " CRC=", crc0);
+	$display("WR=", wr, " DONE=", pktdone, " IDX=", pktcount, " DATA=", pktdata, " CRC=", crc0, " NOT=", ~crc0);
 	if (pktdone) begin
 		if(crc0 == 32'hdebb20e3) begin
 			$display("SUCCESS");
+			done <= 1;
 		end else begin
 			$display("FAILURE");
+			error <= 1;
 		end
-		$finish();
+		done <= 1;
 	end
-	if (pktcount == 105) $finish();
+	if (pktcount == 105) error <= 1;
 end
 `else
 reg [3:0]tick = 4'b0001;
@@ -76,18 +80,20 @@ always_ff @(posedge clk) begin
 		end
 		tick <= { tick[0], tick[3:1] };
 	end
-	$display("WR=", wr, " DONE=", pktdone, " IDX=", pktcount, " DATA=", pktdata, " CRCx2=", crc0, " CRCx8=", crc1);
+	$display("WR=", wr, " DONE=", pktdone, " IDX=", pktcount, " DATA=", pktdata, " CRCx2=", crc0, " CRCx8=", crc1, " NOT=", ~crc1);
 	if (pktdone) begin
 		if (crc0 != 32'hdebb20e3) begin
 			$display("CRC32x2 FAILED");
+			error <= 1;
 		end else if (crc1 != 32'hdebb20e3) begin
 			$display("CRC32x8 FAILED");
+			error <= 1;
 		end else begin
 			$display("SUCCESS");
+			done <= 1;
 		end
-		$finish();
 	end
-	if (pktcount == 105) $finish();
+	if (pktcount == 105) error <= 1;
 end
 `endif
 
