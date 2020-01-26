@@ -33,9 +33,11 @@ $(PROJECT_BIN): $(PROJECT_SRCS) $(PROJECT_DEF) src/testbench.cpp
 
 $(PROJECT_NAME): $(PROJECT_BIN)
 
-$(PROJECT_RUN): _LOGFILE := $(PROJECT_OBJDIR)/simulation.log
+$(PROJECT_RUN): _LOGFILE := out/sim/$(PROJECT_NAME).log
+$(PROJECT_RUN): _VCDFILE := out/sim/$(PROJECT_NAME).vcd
 $(PROJECT_RUN): $(PROJECT_BIN)
-	@$< > $(_LOGFILE)
+	@mkdir -p out/sim
+	@$< -trace $(_VCDFILE) > $(_LOGFILE)
 
 ALL_TARGETS += $(PROJECT_NAME) $(PROJECT_RUN) 
 ALL_BUILDS += $(PROJECT_NAME)
