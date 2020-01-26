@@ -3,11 +3,17 @@
 module top(
 	input wire phy_clk,
 	output wire phy_reset_n,
+
 	input wire phy0_rxc,
 	input wire [3:0]phy0_rxd,
 	input wire phy0_rx_dv,
-//	output wire glb_clk,
-//	output wire glb_bln,
+
+	output wire phy1_gtxclk,
+	output wire phy1_tx_en,
+	output wire [3:0]phy1_txd,
+
+	output wire glb_clk,
+	output wire glb_bln,
 	output wire j1r0,
 	output wire j1r1,
 	output wire j1g0,
@@ -21,17 +27,95 @@ module top(
 
 wire clk25m = phy_clk;
 
-`ifdef PLL
 wire clk125m;
 wire clk250m;
 
 pll_25_125_250 pll(
-	.clk25m_in(phy_clk_in),
+	.clk25m_in(phy_clk),
 	.clk125m_out(clk125m),
 	.clk250m_out(clk250m),
 	.locked()
 );
+
+`ifdef XXX
+reg [31:0]count1;
+always_ff @(posedge phy1_rxc) begin
+	count1 <= count1 + 32'd1;
+end
+assign glb_clk = count1[1];
+
+reg [31:0]count0;
+always_ff @(posedge phy0_rxc) begin
+	count0 <= count0 + 32'd1;
+end
+assign glb_bln = count0[1];
 `endif
+
+wire tx_clk = clk125m;
+reg tx_start = 0;
+reg tx_valid = 0;
+reg tx_error = 0;
+reg [7:0]tx_data = 8'd0;
+wire tx_ready;
+
+eth_rgmii_tx eth_tx(
+	.tx_clk(tx_clk),
+	.pin_tx_clk(phy1_gtxclk),
+	.pin_tx_en(phy1_tx_en),
+	.pin_tx_data(phy1_txd),
+	.start(tx_start),
+	.ready(tx_ready),
+	.valid(tx_valid),
+	.error(tx_error),
+	.data(tx_data)
+);
+
+
+reg [7:0]msgram[0:63];
+
+initial $readmemh("hdl/message.hex", msgram);
+
+
+reg [31:0]count1s = 32'd0;
+always_ff @(posedge tx_clk) begin
+	if (count1s == 32'd125000000) begin
+		count1s <= 32'd0;
+		tx_start <= 1;
+	end else begin
+		count1s <= count1s + 32'd1;
+		tx_start <= 0;
+	end
+end
+
+reg [7:0]xcount = 8'd0;
+reg [7:0]next_xcount;
+reg next_tx_valid;
+reg [7:0]next_tx_data;
+
+always_comb begin
+	next_xcount = xcount;
+	next_tx_valid = tx_valid;
+	next_tx_data = xcount;
+
+	if (tx_start) begin
+		next_tx_valid = 1;
+		next_xcount = 8'd0;
+	end
+
+	if (tx_valid & tx_ready) begin
+		if (xcount < 8'd64) begin
+			next_xcount = xcount + 8'd1;
+		end else begin
+			next_tx_valid = 0;
+		end
+	end
+end
+
+always_ff @(posedge tx_clk) begin
+	xcount <= next_xcount;
+	tx_valid <= next_tx_valid;
+	tx_data <= msgram[next_xcount[5:0]];
+end
 
 wire [7:0]rx_data;
 wire rx_valid;

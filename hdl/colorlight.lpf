@@ -25,6 +25,19 @@ LOCATE COMP "phy0_rxd[2]" SITE "N1";
 LOCATE COMP "phy0_rxd[3]" SITE "P1";
 LOCATE COMP "phy0_rx_dv" SITE "P2";
 
+LOCATE COMP "phy1_gtxclk" SITE "U19";
+LOCATE COMP "phy1_txd[0]" SITE "U20";
+LOCATE COMP "phy1_txd[1]" SITE "T19";
+LOCATE COMP "phy1_txd[2]" SITE "T20";
+LOCATE COMP "phy1_txd[3]" SITE "R20";
+LOCATE COMP "phy1_tx_en" SITE "P19";
+LOCATE COMP "phy1_rxc" SITE "L19";
+LOCATE COMP "phy1_rxd[0]" SITE "P20";
+LOCATE COMP "phy1_rxd[1]" SITE "N19";
+LOCATE COMP "phy1_rxd[2]" SITE "N20";
+LOCATE COMP "phy1_rxd[3]" SITE "M19";
+LOCATE COMP "phy1_rx_dv" SITE "M20";
+
 LOCATE COMP "j1r0" SITE "B3";
 LOCATE COMP "j1g0" SITE "A2";
 LOCATE COMP "j1b0" SITE "B2";
