@@ -5,9 +5,16 @@
 
 // basic fifo with power-of-two storage elements
 
+// bypass register allows written data to be available
+// the cycle after a write in all cases.
+`define SYNC_FIFO_WITH_BYPASS
+
 module sync_fifo #(
-	parameter WIDTH = 8, // data width in bits
-	parameter DEPTH = 8  // capacity 2^DEPTH 
+	// fifo entry data width in bits
+	parameter WIDTH = 8,
+
+	// fifo depth in 2 ^ DEPTH
+	parameter DEPTH = 8
 	) (
 	input wire clk,
 
@@ -50,21 +57,38 @@ reg [1:0]state_next;
 reg rd_valid_next;
 reg wr_ready_next;
 
+`ifdef SYNC_FIFO_WITH_BYPASS
+reg [WIDTH-1:0]bypass;
+reg use_bypass = 0;
+reg use_bypass_next;
+`endif
+
 always_comb begin
 	state_next = state;
 	rd_valid_next = rd_valid;
 	wr_ready_next = wr_ready;
+`ifdef SYNC_FIFO_WITH_BYPASS
+	use_bypass_next = 0;
+`endif
 
 	case (state)
 	EMPTY: begin
 		wr_ready_next = 1;
 		if (do_wr) begin
 			state_next = ONE;
+`ifdef SYNC_FIFO_WITH_BYPASS
+			rd_valid_next = 1;
+			use_bypass_next = 1;
+`endif
 		end
 	end
 	ONE: begin
 		if (do_rd & do_wr) begin
+`ifdef SYNC_FIFO_WITH_BYPASS
+			use_bypass_next = 1;
+`else
 			rd_valid_next = 0;
+`endif
 		end else if (do_rd) begin
 			state_next = EMPTY;
 			rd_valid_next = 0;
@@ -98,6 +122,10 @@ always_ff @(posedge clk) begin
 	wr_ptr <= wr_ptr_next;
 	wr_ready <= wr_ready_next;
 	rd_valid <= rd_valid_next;
+`ifdef SYNC_FIFO_WITH_BYPASS
+	bypass <= use_bypass_next ? wr_data : bypass;
+	use_bypass <= use_bypass_next;
+`endif
 end
 
 // fifo storage
@@ -111,7 +139,11 @@ always_ff @(posedge clk) begin
 	data <= memory[rd_ptr_next[DEPTH-1:0]];
 end
 
-assign rd_data = data; 
+`ifdef SYNC_FIFO_WITH_BYPASS
+assign rd_data = use_bypass ? bypass : data;
+`else
+assign rd_data = data;
+`endif
 
 endmodule
 
