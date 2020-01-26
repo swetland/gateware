@@ -1,0 +1,5 @@
+
+PROJECT_TYPE := verilator-sim
+
+PROJECT_SRCS := hdl/sync_fifo_test.sv hdl/sync_fifo.sv hdl/xorshift.sv
+
