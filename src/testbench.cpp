@@ -31,6 +31,10 @@
 #include "verilated.h"
 #include <verilated_vcd_c.h>
 
+#ifdef SDRAM
+#include "sim-sdram.h"
+#endif
+
 static unsigned memory[65536];
 
 void dpi_mem_write(int addr, int data) {
@@ -194,6 +198,10 @@ int main(int argc, char **argv) {
 		}
 	}
 
+#ifdef SDRAM
+	sim_sdram_init();
+#endif
+
 	Verilated::commandArgs(argc, argv);
 	Verilated::debug(0);
 	Verilated::randReset(2);
@@ -215,18 +223,24 @@ int main(int argc, char **argv) {
 #define SAVETRACE() do {} while (0)
 #endif
 
-	while (!(testbench->done | testbench->error)) { //Verilated::gotFinish()) {
+	int oops = 0;
+	while (!(testbench->done | testbench->error | oops)) { //Verilated::gotFinish()) {
 		now += 5;
 		testbench->clk = 0;
 		testbench->eval();
 		SAVETRACE();
-#if 0
-		fprintf(stderr, "SDRAM data=%04x data__out=%04x data__en=%x\n",
-				testbench->sdram_data, testbench->sdram_data__out, testbench->sdram_data_en);
-#endif
 
 		now += 5;
 		testbench->clk = 1;
+#ifdef SDRAM
+		unsigned ctl =
+			(testbench->sdram_ras_n << 2) |
+			(testbench->sdram_cas_n << 1) |
+			(testbench->sdram_we_n << 0);
+		unsigned out = 0;
+		oops = sim_sdram(ctl, testbench->sdram_addr, testbench->sdram_data_o, &out);
+		testbench->sdram_data_i = out;
+#endif
 		testbench->eval();
 		SAVETRACE();
 #ifdef VGA

@@ -11,7 +11,7 @@ PROJECT_VLG_SRCS := $(filter %.v %.sv,$(PROJECT_SRCS))
 
 PROJECT_OPTS := --top-module testbench
 PROJECT_OPTS += --Mdir $(PROJECT_OBJDIR)
-PROJECT_OPTS += --exe ../../src/testbench.cpp
+PROJECT_OPTS += --exe ../../src/testbench.cpp ../../src/sim-sdram.cpp
 PROJECT_OPTS += --cc
 PROJECT_OPTS += -o ../../$(PROJECT_NAME)-vsim
 PROJECT_OPTS += -DSIMULATION
@@ -24,7 +24,7 @@ $(PROJECT_BIN): _SRCS := $(PROJECT_VLG_SRCS)
 $(PROJECT_BIN): _OPTS := $(PROJECT_OPTS)
 $(PROJECT_BIN): _DIR := $(PROJECT_OBJDIR)
 
-$(PROJECT_BIN): $(PROJECT_SRCS) $(PROJECT_DEF) src/testbench.cpp
+$(PROJECT_BIN): $(PROJECT_SRCS) $(PROJECT_DEF) src/testbench.cpp src/sim-sdram.cpp
 	@mkdir -p $(_DIR) bin
 	@echo "COMPILE (verilator): $(_NAME)"
 	@$(VERILATOR) $(_OPTS) $(_SRCS)
