@@ -53,3 +53,38 @@ LOCATE COMP "glb_clk" SITE "C18";
 LOCATE COMP "glb_alat" SITE "J18";
 LOCATE COMP "glb_bln" SITE "H16";
 
+LOCATE COMP "sdram_data[0]" SITE "D15";
+LOCATE COMP "sdram_data[1]" SITE "E14";
+LOCATE COMP "sdram_data[2]" SITE "E13";
+LOCATE COMP "sdram_data[3]" SITE "D12";
+LOCATE COMP "sdram_data[4]" SITE "E12";
+LOCATE COMP "sdram_data[5]" SITE "D11";
+LOCATE COMP "sdram_data[6]" SITE "C10";
+LOCATE COMP "sdram_data[7]" SITE "B17";
+LOCATE COMP "sdram_data[8]" SITE "B8";
+LOCATE COMP "sdram_data[9]" SITE "A8";
+LOCATE COMP "sdram_data[10]" SITE "C7";
+LOCATE COMP "sdram_data[11]" SITE "A7";
+LOCATE COMP "sdram_data[12]" SITE "A6";
+LOCATE COMP "sdram_data[13]" SITE "B6";
+LOCATE COMP "sdram_data[14]" SITE "A5";
+LOCATE COMP "sdram_data[15]" SITE "B5";
+
+LOCATE COMP "sdram_addr[0]" SITE "B13";
+LOCATE COMP "sdram_addr[1]" SITE "C14";
+LOCATE COMP "sdram_addr[2]" SITE "A16";
+LOCATE COMP "sdram_addr[3]" SITE "A17";
+LOCATE COMP "sdram_addr[4]" SITE "B16";
+LOCATE COMP "sdram_addr[5]" SITE "B15";
+LOCATE COMP "sdram_addr[6]" SITE "A14";
+LOCATE COMP "sdram_addr[7]" SITE "A13";
+LOCATE COMP "sdram_addr[8]" SITE "A12";
+LOCATE COMP "sdram_addr[9]" SITE "A11";
+LOCATE COMP "sdram_addr[10]" SITE "B12";
+LOCATE COMP "sdram_addr[11]" SITE "B11";
+
+LOCATE COMP "sdram_we_n" SITE "A10";
+LOCATE COMP "sdram_cas_n" SITE "A9";
+LOCATE COMP "sdram_ras_n" SITE "B10";
+LOCATE COMP "sdram_clk" SITE "B9";
+
