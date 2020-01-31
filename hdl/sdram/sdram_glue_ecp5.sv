@@ -41,7 +41,7 @@ generate
 for (n = 0; n < DWIDTH; n++) begin
 	BB iobuf (
 		.I(data_o[n]),
-		.T(~data_oe[n]),
+		.T(~data_oe),
 		.O(data_i[n]),
 		.B(pin_data[n])
 	);

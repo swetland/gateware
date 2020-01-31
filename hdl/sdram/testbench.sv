@@ -31,20 +31,32 @@ reg info_e_next;
 
 reg [19:0]rd_addr = 0;
 wire [15:0]rd_data;
-reg rd_ready = 0;
-wire rd_valid;
+reg rd_req = 0;
+reg [3:0]rd_len = 0;
+wire rd_ack;
+wire rd_rdy;
 
 reg [19:0]wr_addr = 0;
 reg [15:0]wr_data = 0;
-reg wr_valid = 0;
-wire wr_ready;
+reg wr_req = 0;
+wire wr_ack;
 
-reg [31:0]count = T_PWR_UP + 32;
-reg [31:0]count_next;
-wire [31:0]count_sub1;
+reg rd_req_next;
+reg wr_req_next;
+reg [3:0]rd_len_next;
+reg [19:0]wr_addr_next;
+reg [19:0]rd_addr_next;
+reg [15:0]wr_data_next;
+
+reg done_next;
+reg error_next;
+
+reg [15:0]count = T_PWR_UP + 32;
+reg [15:0]count_next;
+wire [15:0]count_sub1;
 wire count_done;
 
-assign { count_done, count_sub1 } = { 1'b0, count } - 32'd1;
+assign { count_done, count_sub1 } = { 1'b0, count } - 16'd1;
 
 localparam INIT = 4'd0;
 localparam WRITES = 4'd1;
@@ -54,32 +66,49 @@ localparam STOP = 4'd3;
 reg [3:0]state = INIT;
 reg [3:0]state_next;
 
-reg rd_ready_next;
-reg wr_valid_next;
-reg [19:0]wr_addr_next;
-reg [19:0]rd_addr_next;
-reg [15:0]wr_data_next;
-reg done_next;
+reg number_next;
+reg number_reset;
+wire [31:0]number;
+
+xorshift32 xs(
+	.clk(clk),
+	.next(number_next),
+	.reset(number_reset),
+	.data(number)
+);
+
+reg [15:0]cycles = 0;
+reg [15:0]cycles_next;
 
 always_comb begin
+	number_reset = 0;
+	number_next = 0;
 	state_next = state;
 	count_next = count;
-	rd_ready_next = rd_ready;
-	wr_valid_next = wr_valid;
+	rd_req_next = rd_req;
+	wr_req_next = wr_req;
 	wr_addr_next = wr_addr;
 	rd_addr_next = rd_addr;
+	rd_len_next = rd_len;
 	wr_data_next = wr_data;
 	info_next = info;
 	info_e_next = 0;
 	done_next = 0;
+	error_next = 0;
+	cycles_next = cycles + 16'd1;
+
+	if (cycles == 16'd5000)
+		error_next = 1;
 
 	case (state)
 	INIT: if (count_done) begin
 		state_next = WRITES;
-		count_next = 32;
-		wr_addr_next = 0;
-		wr_data_next = 0;
-		wr_valid_next = 1;
+		count_next = 32; //1000; //32;
+		wr_addr_next = 20'hF0;
+		//wr_data_next = 0;
+		wr_data_next= number[15:0];
+		number_next = 1;
+		wr_req_next = 1;
 		info_next = 16'h10FF;
 		info_e_next = 1;
 	end else begin
@@ -87,15 +116,18 @@ always_comb begin
 	end
 	WRITES: if (count_done) begin
 		state_next = READS;
-		count_next = 32;
-		rd_addr_next = 0;
-		rd_ready_next = 1;
-		wr_valid_next = 0;
+		number_reset = 1;
+		count_next = 32; //1000; //32;
+		rd_addr_next = 20'hF0;
+		rd_req_next = 1;
+		wr_req_next = 0;
 		info_next = 16'h20EE;
 		info_e_next = 1;
 	end else begin
-		if (wr_ready) begin
-			wr_data_next = wr_data + 1;
+		if (wr_ack) begin
+			//wr_data_next = wr_data + 1;
+			wr_data_next = number[15:0];
+			number_next = 1;
 			wr_addr_next = wr_addr + 1;
 			count_next = count_sub1;
 		end
@@ -103,14 +135,23 @@ always_comb begin
 	READS: if (count_done) begin
 		state_next = STOP;
 		done_next = 1;
-		rd_ready_next = 0;
 		info_next = 16'h20DD;
 		info_e_next = 1;
+		rd_req_next = 0;
 	end else begin
-		if (rd_valid) begin
+		if (rd_ack) begin
+			rd_req_next = 0;
+		end
+		if (rd_rdy) begin
+			rd_req_next = 1;
 			rd_addr_next = rd_addr + 1;
 			count_next = count_sub1;
-			info_next = { 8'h40, rd_data[7:0] };
+			if (rd_data == number[15:0])
+				info_next = { 16'h7011 };
+			else
+				info_next = { 16'h40FF };
+			//info_next = { 8'h40, rd_data[7:0] };
+			number_next = 1;
 			info_e_next = 1;
 		end
 	end
@@ -121,15 +162,19 @@ end
 
 always_ff @(posedge clk) begin
 	state <= state_next;
-	rd_ready <= rd_ready_next;
-	wr_valid <= wr_valid_next;
+	rd_req <= rd_req_next;
+	wr_req <= wr_req_next;
 	rd_addr <= rd_addr_next;
 	wr_addr <= wr_addr_next;
 	wr_data <= wr_data_next;
+	rd_len <= rd_len_next;
 	count <= count_next;
-	done <= done_next;
 	info <= info_next;
 	info_e <= info_e_next;
+
+	cycles <= cycles_next;
+	done <= done_next;
+	error <= error_next;
 end
 
 sdram #(
@@ -150,14 +195,17 @@ sdram #(
 	.pin_data(sdram_data),
 `endif
 	.rd_addr(rd_addr),
+	.rd_len(rd_len),
+	.rd_req(rd_req),
+	.rd_ack(rd_ack),
 	.rd_data(rd_data),
-	.rd_ready(rd_ready),
-	.rd_valid(rd_valid),
+	.rd_rdy(rd_rdy),
 
 	.wr_addr(wr_addr),
 	.wr_data(wr_data),
-	.wr_valid(wr_valid),
-	.wr_ready(wr_ready)
+	.wr_len(0),
+	.wr_req(wr_req),
+	.wr_ack(wr_ack)
 );
 
 endmodule
