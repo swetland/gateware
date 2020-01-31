@@ -85,8 +85,9 @@ sync_fifo #(
 // the current value would have been accepted
 xorshift32 xs32wr (
 	.clk(clk),
-	.ready(wr_valid & wr_ready),
-	.data(wr_data)
+	.next(wr_valid & wr_ready),
+	.data(wr_data),
+	.reset(0)
 );
 
 // read verification data stream
@@ -94,8 +95,9 @@ xorshift32 xs32wr (
 // the current value would have been checked
 xorshift32 xs32rd (
 	.clk(clk),
-	.ready(rd_valid & rd_ready),
-	.data(chk_data)
+	.next(rd_valid & rd_ready),
+	.data(chk_data),
+	.reset(0)
 );
 
 endmodule

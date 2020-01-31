@@ -7,7 +7,8 @@ module xorshift32 #(
         parameter INITVAL = 32'hebd5a728
         ) (
         input wire clk,
-        input wire ready,
+        input wire next,
+	input wire reset,
         output reg [31:0]data = INITVAL
 );
 
@@ -19,7 +20,10 @@ wire [31:0] nxt2 = nxt1 ^ { 17'd0, nxt1[31:17] };
 wire [31:0] nxt3 = nxt2 ^ { nxt2[26:0], 5'd0   };
 
 always_ff @(posedge clk)
-        if (ready) data <= nxt3;
+	if (reset)
+		data <= INITVAL;
+	else if (next)
+        	data <= nxt3;
 
 endmodule
 
