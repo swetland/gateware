@@ -38,6 +38,7 @@ module sdram #(
 	parameter T_PWR_UP = 25000 // Power on delay
 	) (
 	input wire clk,
+	input wire reset,
 	output wire pin_clk,
 	output wire pin_ras_n,
 	output wire pin_cas_n,
@@ -123,12 +124,6 @@ reg [15:0]refresh_next;
 wire [15:0]refresh_sub1 = refresh - 16'd1;
 wire refresh_done = refresh[15];
 
-// general purpose down counter
-reg [4:0]count = 0;
-reg [4:0]count_next;
-wire [4:0]count_sub1 = count - 5'd1;
-wire count_done = count[4];
-
 // sdram bank state
 reg bank_active[0:BANKCOUNT-1];
 reg bank_active_next[0:BANKCOUNT-1];
@@ -145,6 +140,8 @@ localparam REFRESH = 4'd5;
 localparam ACTIVE = 4'd6;
 localparam READ = 4'd7;
 localparam WRITE = 4'd8;
+localparam START_READ = 4'd9;
+localparam START_WRITE = 4'd10;
 
 reg [3:0]state = START;
 reg [3:0]state_next;
@@ -177,9 +174,23 @@ reg io_sel_a10_next;
 reg io_sel_row = 0;
 reg io_sel_row_next;
 
+// general purpose down counter
+//reg [4:0]count = 0;
+//reg [4:0]count_next;
+//wire [4:0]count_sub1 = count - 5'd1;
+//wire count_done = count[4];
+
+reg [8:0]count = 0;
+reg [8:0]count_next;
+reg count_done = 1;
+reg count_done_next;
+
+reg io_do_rd = 0;
+reg io_do_rd_next;
+
 always_comb begin
 	state_next = state;
-	count_next = count_done ? count : count_sub1;
+//	count_next = count_done ? count : count_sub1;
 	refresh_next = refresh_done ? refresh : refresh_sub1;
 	cmd_next = CMD_NOP;
 	data_o_next = data_o;
@@ -190,8 +201,12 @@ always_comb begin
 	rd_data_next = rd_data;
 	burst_next = burst;
 	io_addr_next = io_addr;
+	io_do_rd_next = io_do_rd;
 	io_sel_a10_next = io_sel_a10;
 	io_sel_row_next = io_sel_row;
+
+	count_done_next = count_done | count[0];
+	count_next = { 1'b0, count[8:1] };
 
 	for (i = 0; i < BANKCOUNT; i++) begin
 		bank_active_next[i] = bank_active[i];
@@ -222,53 +237,61 @@ always_comb begin
 			cmd_next = CMD_PRECHARGE;
 			io_sel_row_next = 0;
 			io_sel_a10_next = 1; // ALL BANKS
-			count_next = T_RP - 2;
-		end else if (rd_req && !rd_ack) begin
+			//count_next = T_RP - 2;
+			count_next[T_RP-2] = 1; count_done_next = 0;
+		end else if (rd_req) begin
+			io_do_rd_next = 1;
 			io_addr_next = rd_addr;
-			if (!bank_active[rd_bank] || (bank_row[rd_bank] != rd_row)) begin
-				state_next = ACTIVE;
-				cmd_next = CMD_PRECHARGE;
-				io_sel_row_next = 0; // column addr
-				io_sel_a10_next = 0; // one bank only
-				count_next = T_RP - 2;
-			end else begin
-				cmd_next = CMD_READ;
-				io_sel_row_next = 0; // column addr
-				io_sel_a10_next = 0; // no auto precharge
-				rd_pipe_rdy_next = { 1'b1, rd_pipe_rdy[3:1] };
-				rd_pipe_bsy_next = 4'b1111;
-				rd_ack_next = 1;
-				if (rd_len != 4'd0) begin
-					state_next = READ;
-					burst_next = rd_len;
-				end
-			end
-		end else if (wr_req && !rd_pipe_bsy[0] && !wr_ack) begin
+			burst_next = rd_len;
+			state_next = START_READ;
+			rd_ack_next = 1;
+		end else if (wr_req) begin
+			io_do_rd_next = 0;
 			io_addr_next = wr_addr;
-			if (!bank_active[wr_bank] || (bank_row[wr_bank] != wr_row)) begin
-				state_next = ACTIVE;
-				// precharge one bank (a10=0)
-				cmd_next = CMD_PRECHARGE;
-				io_sel_row_next = 0; // column addr
-				io_sel_a10_next = 0; // one bank only
-				count_next = T_RP - 2;
-			end else begin
-				cmd_next = CMD_WRITE;
-				io_sel_row_next = 0; // column addr
-				io_sel_a10_next = 0; // no auto precharge
-				data_o_next = wr_data;
-				data_oe_next = 1;
-				wr_ack_next = 1; // 1cyc delay eww
-				if (wr_len != 4'd0) begin
-					burst_next = wr_len;
-					state_next = WRITE;
-				end
-			end
+			data_o_next = wr_data;
+			burst_next = wr_len;
+			state_next = START_WRITE;
+			wr_ack_next = 1;
+		end
+	end
+	START_READ: begin
+		if (!bank_active[io_bank] || (bank_row[io_bank] != io_row)) begin
+			state_next = ACTIVE;
+			cmd_next = CMD_PRECHARGE;
+			io_sel_row_next = 0; // column addr
+			io_sel_a10_next = 0; // one bank only
+			//count_next = T_RP - 2;
+			count_next[T_RP-2] = 1; count_done_next = 0;
+		end else begin
+			cmd_next = CMD_READ;
+			io_sel_row_next = 0; // column addr
+			io_sel_a10_next = 0; // no auto precharge
+			rd_pipe_rdy_next = { 1'b1, rd_pipe_rdy[3:1] };
+			rd_pipe_bsy_next = 4'b1111;
+			state_next = (burst != 4'd0) ? READ : IDLE;
+		end
+	end
+	START_WRITE: if (!rd_pipe_bsy[0]) begin
+		if (!bank_active[io_bank] || (bank_row[io_bank] != io_row)) begin
+			state_next = ACTIVE;
+			// precharge one bank (a10=0)
+			cmd_next = CMD_PRECHARGE;
+			io_sel_row_next = 0; // column addr
+			io_sel_a10_next = 0; // one bank only
+			//count_next = T_RP - 2;
+			count_next[T_RP-2] = 1; count_done_next = 0;
+		end else begin
+			cmd_next = CMD_WRITE;
+			io_sel_row_next = 0; // column addr
+			io_sel_a10_next = 0; // no auto precharge
+			data_oe_next = 1;
+			state_next = (burst != 4'd0) ? WRITE : IDLE;
 		end
 	end
 	ACTIVE: begin
-		state_next = IDLE;
-		count_next = T_RCD - 2;
+		state_next = io_do_rd ? START_READ : START_WRITE;
+		//count_next = T_RCD - 2;
+		count_next[T_RCD-2] = 1; count_done_next = 0;
 		cmd_next = CMD_ACTIVE;
 		io_sel_row_next = 1; // row address
 		bank_active_next[io_bank] = 1;
@@ -299,7 +322,8 @@ always_comb begin
 	end
 	INIT0: if (refresh_done) begin
 		state_next = INIT1;
-		count_next = 2;
+		//count_next = 2;
+		count_next[2] = 1; count_done_next = 0;
 		cmd_next = CMD_PRECHARGE;
 		io_sel_row_next = 0; // column addressing
 		io_sel_a10_next = 1; // ALL BANKS
@@ -307,7 +331,8 @@ always_comb begin
 	INIT1: begin
 		state_next = INIT2;
 		cmd_next = CMD_SET_MODE;
-		count_next = T_MRD - 2;
+		//count_next = T_MRD - 2;
+		count_next[T_MRD-2] = 1; count_done_next = 0;
 		// r/w burst off, cas lat 3, sequential addr
 		io_addr_next[XWIDTH-1:COLBITS] = { {(AWIDTH - 10){1'b0}}, 10'b0000110000};
 		io_sel_row_next = 1; // row addressing
@@ -315,12 +340,14 @@ always_comb begin
 	INIT2: begin
 		state_next = REFRESH;
 		cmd_next = CMD_REFRESH;
-		count_next = T_RC - 2;
+		//count_next = T_RC - 2;
+		count_next[T_RC-2] = 1; count_done_next = 0;
 	end
 	REFRESH: begin
 		state_next = IDLE;
 		cmd_next = CMD_REFRESH;
-		count_next = T_RC - 2;
+		//count_next = T_RC - 2;
+		count_next[T_RC-2] = 1; count_done_next = 0;
 		refresh_next = T_RI - 1;
 
 		// we got here after a precharge all
@@ -334,10 +361,12 @@ always_comb begin
 end
 
 always_ff @(posedge clk) begin
-	state <= state_next;
+	state <= reset ? START : state_next;
 	count <= count_next;
+	count_done <= count_done_next;
 	refresh <= refresh_next;
 	cmd <= cmd_next;
+	io_do_rd <= io_do_rd_next;
 	io_sel_a10 <= io_sel_a10_next;
 	io_sel_row <= io_sel_row_next;
 	io_addr <= io_addr_next;

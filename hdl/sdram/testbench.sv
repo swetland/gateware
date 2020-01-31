@@ -80,6 +80,8 @@ xorshift32 xs(
 reg [15:0]cycles = 0;
 reg [15:0]cycles_next;
 
+reg reset = 1;
+
 always_comb begin
 	number_reset = 0;
 	number_next = 0;
@@ -103,7 +105,7 @@ always_comb begin
 	case (state)
 	INIT: if (count_done) begin
 		state_next = WRITES;
-		count_next = 32; //1000; //32;
+		count_next = 1000; //32;
 		wr_addr_next = 20'hF0;
 		//wr_data_next = 0;
 		wr_data_next= number[15:0];
@@ -117,7 +119,7 @@ always_comb begin
 	WRITES: if (count_done) begin
 		state_next = READS;
 		number_reset = 1;
-		count_next = 32; //1000; //32;
+		count_next = 1000; //32;
 		rd_addr_next = 20'hF0;
 		rd_req_next = 1;
 		wr_req_next = 0;
@@ -175,6 +177,7 @@ always_ff @(posedge clk) begin
 	cycles <= cycles_next;
 	done <= done_next;
 	error <= error_next;
+	reset <= 0;
 end
 
 sdram #(
@@ -182,6 +185,7 @@ sdram #(
 	.T_RI(T_RI)
 	) sdram0 (
 	.clk(clk),
+	.reset(reset),
 
 	.pin_clk(sdram_clk),
 	.pin_ras_n(sdram_ras_n),
