@@ -1,7 +1,7 @@
 
 PROJECT_TYPE := verilator-sim
 
-PROJECT_SRCS := hdl/sdram/testbench.sv
+PROJECT_SRCS := hdl/sdram/testbench.sv hdl/sdram/test.hex
 PROJECT_SRCS += hdl/sdram/sdram.sv hdl/xorshift.sv
 
 PROJECT_VOPTS := -CFLAGS -DSDRAM
