@@ -80,10 +80,12 @@ assign j1r1 = j1r0;
 assign j1b1 = j1b0;
 assign j1g1 = j1g0;
 
-reg [11:0]waddr = 12'd0;
+reg [10:0]waddr = 11'd0;
+
+wire [10:0]waddr_next = (waddr == 11'd1199) ? 11'd0 : (waddr + 11'd1);
 
 always_ff @(posedge testclk) begin
-	waddr <= (info_e)  ? (waddr + 12'd2) : waddr;
+	waddr <= (info_e) ? waddr_next : waddr;
 end
 
 display #(
@@ -101,7 +103,7 @@ display #(
         .active(),
         .frame(),
         .wclk(testclk),
-        .waddr(waddr),
+        .waddr({waddr,1'b0}),
         .wdata(info),
         .we(info_e)
 );
