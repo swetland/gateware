@@ -11,24 +11,51 @@ rdc 1234
 addr 20
 rdc aa55
 
+#trigger
 auto+
-addr 0
-wrp .15
+addr 80 
+wrp 100
 show 42
 
 p1rst
-addr 0
-rdp .15
+addr 80
+rdp 100
 show 43
 
 show e0
 p1rst
-addr 0
+
+#trigger
+addr f0
+wri 8888
+
+addr 80 
 show e1
-rdf .15
+rdf 100
 show e2
 wait .30
-verify .15
+verify 100
 show e3
 
 show ff
+
+show 00
+show 00
+#dump .250
+
+p1rst
+addr 80 
+show bb
+rdb .15
+wait .30
+verify .15
+show b0 
+
+addr 1000
+p0rst
+#wrp ffff
+
+addr 1000
+p1rst
+#rdp ffff
+show a7

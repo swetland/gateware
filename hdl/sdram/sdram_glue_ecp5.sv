@@ -32,8 +32,8 @@ ODDRX1F clock_ddr (
         .Q(pin_clk),
         .SCLK(clk),
         .RST(0),
-        .D0(0),
-        .D1(1)
+        .D0(1),
+        .D1(0)
 );
 
 genvar n;

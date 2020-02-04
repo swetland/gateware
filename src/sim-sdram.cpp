@@ -148,7 +148,7 @@ int sim_sdram(unsigned ctl, unsigned addr, unsigned din, unsigned* dout) {
 	unsigned a_col = addr & COLMASK;
 	unsigned a_a10 = (addr >> 10) & 1;
 
-	printf("(%-4s) %06x  ", cname(ctl), addr);
+	printf("(%-4s) %06x %04x  ", cname(ctl), addr, din);
 	for (unsigned n = 0; n < 3; n++) {
 		if (sdram.pipe_data_e[n]) {
 			printf("<%04x", sdram.pipe_data_o[n]);
@@ -293,8 +293,8 @@ int sim_sdram(unsigned ctl, unsigned addr, unsigned din, unsigned* dout) {
 		if (sdram.state == BANK_WRITE) {
 			memory[sdram.addr] = din;
 		} else {
-			sdram.pipe_data_o[1] = memory[sdram.addr];
-			sdram.pipe_data_e[1] = 1;
+			sdram.pipe_data_o[0] = memory[sdram.addr];
+			sdram.pipe_data_e[0] = 1;
 		}
 		sdram.count--;
 		if (sdram.count == 0) {

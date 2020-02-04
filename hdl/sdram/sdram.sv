@@ -74,6 +74,14 @@ localparam XWIDTH = (ROWBITS + BANKBITS + COLBITS);
 
 localparam BANKCOUNT = (1 << BANKBITS);
 
+// validate T_RCD and adjust MODE bits and read latency configuration
+if ((T_RCD != 2) && (T_RCD != 3))
+	$error("T_RCD must be 2 or 3");
+
+localparam PMSB = T_RCD;
+localparam [1:0]SDRAM_CL = T_RCD;
+localparam [9:0]SDRAM_MODE = { 4'b000, SDRAM_CL, 4'b0000 };
+
 integer i; // used by various for loops
 
 // split input address into bank, row, col
@@ -156,12 +164,10 @@ localparam CMD_READ =      3'b101;  // BA*=bankno, A10=AP, COLADDR
 localparam CMD_STOP =      3'b110;
 localparam CMD_NOP =       3'b111;
 
-// TODO CL2 vs CL3 configurability here and elsewhere
-
-reg [3:0]rd_pipe_rdy = 0;
-reg [3:0]rd_pipe_bsy = 0;
-reg [3:0]rd_pipe_rdy_next;
-reg [3:0]rd_pipe_bsy_next;
+reg [PMSB:0]rd_pipe_rdy = 0;
+reg [PMSB:0]rd_pipe_bsy = 0;
+reg [PMSB:0]rd_pipe_rdy_next;
+reg [PMSB:0]rd_pipe_bsy_next;
 
 reg [3:0]burst = 0;
 reg [3:0]burst_next;
@@ -215,8 +221,8 @@ always_comb begin
 
 	// read pipe regs track inbound read data (rdy)
 	// and hold off writes (bsy) to avoid bus conflict
-	rd_pipe_rdy_next = { 1'b0, rd_pipe_rdy[3:1] };
-	rd_pipe_bsy_next = { 1'b0, rd_pipe_bsy[3:1] };
+	rd_pipe_rdy_next = { 1'b0, rd_pipe_rdy[PMSB:1] };
+	rd_pipe_bsy_next = { 1'b0, rd_pipe_bsy[PMSB:1] };
 	
 	if (rd_pipe_rdy[0]) begin
 		rd_rdy_next = 1;
@@ -230,7 +236,6 @@ always_comb begin
 		state_next = INIT0;
 	end
 	IDLE: begin
-		data_oe_next = 0;
 		if (refresh_done) begin
 			// refresh counter has expired, precharge all and refresh
 			state_next = REFRESH;
@@ -239,7 +244,8 @@ always_comb begin
 			io_sel_a10_next = 1; // ALL BANKS
 			//count_next = T_RP - 2;
 			count_next[T_RP-2] = 1; count_done_next = 0;
-		end else if (rd_req) begin
+		end else
+			if (rd_req) begin
 			io_do_rd_next = 1;
 			io_addr_next = rd_addr;
 			burst_next = rd_len;
@@ -266,8 +272,8 @@ always_comb begin
 			cmd_next = CMD_READ;
 			io_sel_row_next = 0; // column addr
 			io_sel_a10_next = 0; // no auto precharge
-			rd_pipe_rdy_next = { 1'b1, rd_pipe_rdy[3:1] };
-			rd_pipe_bsy_next = 4'b1111;
+			rd_pipe_rdy_next = { 1'b1, rd_pipe_rdy[PMSB:1] };
+			rd_pipe_bsy_next = { PMSB + 1 { 1'b1 } };
 			state_next = (burst != 4'd0) ? READ : IDLE;
 		end
 	end
@@ -285,7 +291,12 @@ always_comb begin
 			io_sel_row_next = 0; // column addr
 			io_sel_a10_next = 0; // no auto precharge
 			data_oe_next = 1;
-			state_next = (burst != 4'd0) ? WRITE : IDLE;
+			if (burst != 4'd0) begin
+				state_next = WRITE;
+			end else begin
+				state_next = IDLE;
+				count_next[2] = 1; count_done_next = 0; // WR?
+			end
 		end
 	end
 	ACTIVE: begin
@@ -306,18 +317,20 @@ always_comb begin
 		// column addressing pre-selected from initial read
 		io_addr_next[COLBITS-1:0] = io_col_add1;
 		cmd_next = CMD_READ;
-		rd_pipe_rdy_next = { 1'b1, rd_pipe_rdy[3:1] };
-		rd_pipe_bsy_next = 4'b1111;
+		rd_pipe_rdy_next = { 1'b1, rd_pipe_rdy[PMSB:1] };
+		rd_pipe_bsy_next = { PMSB + 1 { 1'b1 } };
 	end
 	WRITE: begin
 		if (burst_done) begin
 			state_next = IDLE;
+			count_next[2] = 1; count_done_next = 0; // WR?
 		end else begin
 			burst_next = burst_sub1;
 		end
 		// column addressing pre-selected from initial write
 		io_addr_next[COLBITS-1:0] = io_col_add1;
 		cmd_next = CMD_WRITE;
+		data_o_next = wr_data; // handshake?
 		data_oe_next = 1;
 	end
 	INIT0: if (refresh_done) begin
@@ -333,8 +346,8 @@ always_comb begin
 		cmd_next = CMD_SET_MODE;
 		//count_next = T_MRD - 2;
 		count_next[T_MRD-2] = 1; count_done_next = 0;
-		// r/w burst off, cas lat 3, sequential addr
-		io_addr_next[XWIDTH-1:COLBITS] = { {(AWIDTH - 10){1'b0}}, 10'b0000110000};
+		io_addr_next[XWIDTH-1:COLBITS] =
+			{ {ROWBITS-10{1'b0}}, SDRAM_MODE, {BANKBITS{1'b0}} };
 		io_sel_row_next = 1; // row addressing
 	end
 	INIT2: begin
@@ -364,6 +377,7 @@ always_ff @(posedge clk) begin
 	state <= reset ? START : state_next;
 	count <= count_next;
 	count_done <= count_done_next;
+	burst <= burst_next;
 	refresh <= refresh_next;
 	cmd <= cmd_next;
 	io_do_rd <= io_do_rd_next;
