@@ -60,7 +60,7 @@ reg rd_wr_ptr = 0;
 reg rd_wr_ptr_sync = 0;
 
 // readable (full) when read and write pointers are different
-assign rd_ready = (rd_wr_ptr ^ rd_ptr);
+assign rd_valid = (rd_wr_ptr ^ rd_ptr);
 
 always_ff @(posedge rd_clk) begin
 	// sync wr_ptr into rd_ domain
