@@ -274,7 +274,12 @@ always_comb begin
 			io_sel_a10_next = 0; // no auto precharge
 			rd_pipe_rdy_next = { 1'b1, rd_pipe_rdy[PMSB:1] };
 			rd_pipe_bsy_next = { PMSB + 1 { 1'b1 } };
-			state_next = (burst != 4'd0) ? READ : IDLE;
+			if (burst == 4'd0) begin
+				state_next = IDLE;
+			end else begin
+				state_next = READ;
+				burst_next = burst_sub1;
+			end
 		end
 	end
 	START_WRITE: if (!rd_pipe_bsy[0]) begin
@@ -291,11 +296,12 @@ always_comb begin
 			io_sel_row_next = 0; // column addr
 			io_sel_a10_next = 0; // no auto precharge
 			data_oe_next = 1;
-			if (burst != 4'd0) begin
-				state_next = WRITE;
-			end else begin
+			if (burst == 4'd0) begin
 				state_next = IDLE;
+				burst_next = burst_sub1;
 				count_next[2] = 1; count_done_next = 0; // WR?
+			end else begin
+				state_next = WRITE;
 			end
 		end
 	end
@@ -309,7 +315,7 @@ always_comb begin
 		bank_row_next[io_bank] = io_row;
 	end
 	READ: begin
-		if (burst_done) begin
+		if (burst == 4'd0) begin
 			state_next = IDLE;
 		end else begin
 			burst_next = burst_sub1;
@@ -321,7 +327,7 @@ always_comb begin
 		rd_pipe_bsy_next = { PMSB + 1 { 1'b1 } };
 	end
 	WRITE: begin
-		if (burst_done) begin
+		if (burst == 4'd0) begin
 			state_next = IDLE;
 			count_next[2] = 1; count_done_next = 0; // WR?
 		end else begin
