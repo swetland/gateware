@@ -28,6 +28,7 @@ module top(
 
 wire clk25m = phy_clk;
 
+`ifdef CLK125
 wire clk125m;
 wire clk250m;
 
@@ -37,6 +38,17 @@ pll_25_125_250 pll(
 	.clk250m_out(clk250m),
 	.locked()
 );
+`else
+wire clk100m;
+
+pll_25_100 pll(
+	.clk25m_in(phy_clk),
+	.clk100m_out(clk100m),
+	.locked()
+);
+`endif
+
+wire testclk = clk100m;
 
 wire [15:0]info;
 wire info_e;
@@ -45,7 +57,7 @@ testbench #(
 	.T_PWR_UP(25000), 
 	.T_RI(1900)
 	) test0 (
-	.clk(clk125m),
+	.clk(testclk),
 	.error(),
 	.done(),
 	.sdram_clk(sdram_clk),
@@ -70,7 +82,7 @@ assign j1g1 = j1g0;
 
 reg [11:0]waddr = 12'd0;
 
-always_ff @(posedge clk125m ) begin
+always_ff @(posedge testclk) begin
 	waddr <= (info_e)  ? (waddr + 12'd2) : waddr;
 end
 
@@ -88,7 +100,7 @@ display #(
         .vsync(glb_b),
         .active(),
         .frame(),
-        .wclk(clk125m),
+        .wclk(testclk),
         .waddr(waddr),
         .wdata(info),
         .we(info_e)
