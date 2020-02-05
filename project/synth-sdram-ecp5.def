@@ -1,0 +1,10 @@
+PROJECT_TYPE := nextpnr-ecp5
+
+PROJECT_SRCS := hdl/sdram/wrapper.sv 
+PROJECT_SRCS += hdl/sdram/sdram.sv
+PROJECT_SRCS += hdl/synth_wrapper.sv
+
+PROJECT_NEXTPNR_OPTS := --25k --package CABGA381 --speed 6 --lpf-allow-unconstrained --freq 133
+
+# bypass the sdram_glue
+PROJECT_VERILOG_DEFS := verilator
