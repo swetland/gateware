@@ -55,44 +55,6 @@ reg [AMSB:0]rd_addr_next;
 reg [AMSB:0]wr_addr_next;
 reg [DMSB:0]wr_data_next;
 
-// scratch memory to capture back-to-back and burst read results
-reg [DMSB:0]scratch[0:1023];
-reg [9:0]swraddr = 0;
-reg [9:0]srdaddr = 0;
-reg [DMSB:0]srddata = 0;
-reg [9:0]swraddr_next;
-reg [9:0]srdaddr_next;
-
-reg sreset = 0;
-reg srd = 0;
-
-always_comb begin
-	swraddr_next = swraddr;
-	srdaddr_next = srdaddr;
-
-	if (sreset) begin
-		swraddr_next = 0;
-		srdaddr_next = 0;
-	end else begin
-		if (rd_rdy)
-			swraddr_next = swraddr + 10'd1;
-		if (srd)
-			srdaddr_next = srdaddr + 10'd1;
-	end
-end
-
-always_ff @(posedge clk) begin
-	swraddr <= swraddr_next;
-	srdaddr <= srdaddr_next;
-end
-
-always_ff @(posedge clk) begin
-	if (rd_rdy)
-		scratch[swraddr] <= rd_data;
-	if (srd)
-		srddata <= scratch[srdaddr];
-end
-
 reg [31:0]pattern0;
 reg pattern0_reset = 0;
 reg pattern0_reset_next;
@@ -110,25 +72,34 @@ reg [16:0]count_next;
 wire count_done = count[16];
 wire [16:0]count_minus_one = count - 17'd1;
 
-localparam START = 4'd0;
-localparam WRITE = 4'd1;
-localparam READ  = 4'd2;
-localparam HALT  = 4'd3;
-localparam VERIFY = 4'd4;
-localparam DUMP = 4'd5;
-localparam DUMP1 = 4'd6;
-localparam DUMP2 = 4'd7;
-localparam DUMP3 = 4'd8;
+localparam START =  3'd0;
+localparam START2 = 3'd1;
+localparam WRITE =  3'd2;
+localparam READ  =  3'd3;
+localparam HALT  =  3'd4;
 
-reg [3:0]state = START;
-reg [3:0]state_next;
+reg [2:0]state = START;
+reg [2:0]state_next;
 
 localparam BLOCK = 17'd1023;
 
 `define READX16
 
+reg [DMSB:0]chk_ptn = 0;
+reg [DMSB:0]chk_ptn_next;
+reg [DMSB:0]chk_dat = 0;
+reg [DMSB:0]chk_dat_next;
+reg chk = 0;
+reg chk_next;
+
+reg error_next;
+
+reg [20:0]colormap =  21'b111110101100011010001;
+reg [20:0]colormap_next;
+
 always_comb begin
 	state_next = state;
+	error_next = error;
 	count_next = count;
 	rd_addr_next = rd_addr;
 	rd_req_next = rd_req;
@@ -141,30 +112,49 @@ always_comb begin
 	pattern1_reset_next = 0;
 	pattern0_step_next = 0;
 	pattern1_step_next = 0;
+	colormap_next = colormap;
 	info_next = info;
 	info_e_next = 0;
-	srd = 0;
-	sreset = 0;
+
+	chk_ptn_next = chk_ptn;
+	chk_dat_next = chk_dat;
+	chk_next = 0;
+
+	// verify pipeline 1: capture read data and pattern
+	if (rd_rdy) begin
+		chk_ptn_next = pattern1[DMSB:0];
+		chk_dat_next = rd_data;
+		chk_next = 1;
+		pattern1_step_next = 1;
+	end
+
+	// verify pipeline 2: compare and flag errors
+	if (chk) begin
+		error_next = (chk_ptn != chk_dat);
+	end
 
 	case (state)
 	START: if (count_done) begin
-		//info_e_next = 1;
-		//info_next = 16'h72AA;
-		state_next = WRITE;
-		count_next = BLOCK;
+		state_next = START2;
+		info_e_next = 1;
+		info_next = { 1'b0, colormap[2:0], 4'h0, 6'h0, rd_addr[19:18] };
 	end else begin
 		count_next = count_minus_one;
 	end
+	START2: begin
+		info_e_next = 1;
+		info_next = { 1'b0, colormap[2:0], 4'h0, rd_addr[17:10] };
+		state_next = WRITE;
+		count_next = BLOCK;
+		colormap_next = { colormap[2:0], colormap[20:3] };
+	end
 	WRITE: if (count_done) begin
-		//info_e_next = 1;
-		//info_next = 16'h72BB;
 		state_next = READ;
 `ifdef READX16
 		count_next = 63;
 `else
 		count_next = BLOCK;
 `endif
-		sreset = 1;
 	end else begin
 		if (wr_req) begin
 			if (wr_ack) begin
@@ -181,9 +171,8 @@ always_comb begin
 	READ: if (count_done) begin
 		//info_e_next = 1;
 		//info_next = 16'h72CC;
-		state_next = VERIFY;
+		state_next = START;
 		count_next = BLOCK;
-		srd = 1;
 	end else begin
 		if (rd_req) begin
 			if (rd_ack) begin
@@ -202,48 +191,18 @@ always_comb begin
 `endif
 		end
 	end
-	VERIFY: if (count_done) begin
-		info_e_next = 1;
-		info_next = { 8'h71 , rd_addr[17:10] };
-		state_next = START;
-	end else begin
-		if (pattern1[DMSB:0] == srddata) begin
-			//info_e_next = 1;
-			//info_next = 16'h7011;
-			count_next = count_minus_one;
-			srd = 1;
-			pattern1_step_next = 1;
-		end else begin
-			info_e_next = 1;
-			info_next = 16'h74EE;
-			state_next = DUMP;
-		end
-	end
-	DUMP: begin
-`ifdef DODUMP
-		state_next = DUMP1;
-		info_e_next = 1;
-		info_next = { 8'h20, pattern1[15:8] };
-	end
-	DUMP1: begin
-		state_next = DUMP2;
-		info_e_next = 1;
-		info_next = { 8'h20, pattern1[7:0] };
-	end
-	DUMP2: begin
-		state_next = DUMP3;
-		info_e_next = 1;
-		info_next = { 8'h40, srddata[15:8] };
-	end
-	DUMP3: begin
-		info_e_next = 1;
-		info_next = { 8'h40, srddata[7:0] };
-`endif
-		state_next = HALT;
-	end
 	HALT: state_next = HALT;	
 	default: state_next = HALT;
 	endcase
+
+	if (error) begin
+		state_next = HALT;
+		info_next = { 16'h40EE };
+		info_e_next = 1;
+		error_next = 0;
+		rd_req_next = 0;
+		wr_req_next = 0;
+	end
 end
 
 reg reset = 1;
@@ -265,6 +224,11 @@ always_ff @(posedge clk) begin
 	pattern1_step <= pattern1_step_next;
 	info <= info_next;
 	info_e <= info_e_next;
+	chk <= chk_next;
+	chk_dat <= chk_dat_next;
+	chk_ptn <= chk_ptn_next;
+	error <= error_next;
+	colormap <= colormap_next;
 end
 
 xorshift32 xs0(
@@ -298,14 +262,22 @@ sdram #(
 `else
 	.pin_data(sdram_data),
 `endif
+
+`ifdef SWIZZLE
+	.rd_addr({rd_addr[7:4],rd_addr[19:8],rd_addr[3:0]}),
+	.wr_addr({wr_addr[7:4],wr_addr[19:8],wr_addr[3:0]}),
+`else
 	.rd_addr(rd_addr),
+	.wr_addr(wr_addr),
+`endif
+	//.wr_addr({wr_addr[19:13], 1'b0, wr_addr[11:0]}), // force error
+
 	.rd_len(rd_len),
 	.rd_req(rd_req),
 	.rd_ack(rd_ack),
 	.rd_data(rd_data),
 	.rd_rdy(rd_rdy),
 
-	.wr_addr(wr_addr),
 	.wr_data(wr_data),
 	.wr_len(wr_len),
 	.wr_req(wr_req),
