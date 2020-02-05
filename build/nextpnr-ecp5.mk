@@ -17,10 +17,12 @@ PROJECT_LPF_SRCS := $(filter %.lpf,$(PROJECT_SRCS))
 
 $(PROJECT_YS): _SRCS := $(PROJECT_VLG_SRCS)
 $(PROJECT_YS): _JSON := $(PROJECT_JSON)
+$(PROJECT_YS): _DEFS := $(PROJECT_VERILOG_DEFS)
 $(PROJECT_YS): $(PROJECT_SRCS) $(PROJECT_DEF) build/nextpnr-ecp5.mk
 	@mkdir -p $(dir $@)
 	@echo GENERATING: $@
 	@echo verilog_defines -DHEX_PATHS -DYOSYS > $@
+	@for def in $(_DEFS); do echo verilog_defines -D$$def; done >> $@
 	@for src in $(_SRCS); do echo read_verilog -sv $$src; done >> $@
 	@echo synth_ecp5 -top top -json $(_JSON) >> $@
 

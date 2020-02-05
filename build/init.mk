@@ -27,6 +27,7 @@ $(eval PROJECT_TYPE :=)\
 $(eval PROJECT_PART :=)\
 $(eval PROJECT_SRCS :=)\
 $(eval PROJECT_VOPTS :=)\
+$(eval PROJECT_VERILOG_DEFS :=)\
 $(eval PROJECT_NEXTPNR_OPTS :=)\
 $(eval include $(PROJECT_DEF))\
 $(eval PROJECT_NAME := $(patsubst project/%.def,%,$(PROJECT_DEF)))\
