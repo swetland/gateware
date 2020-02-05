@@ -4,56 +4,49 @@
 `default_nettype none
 
 module testbench #(
-	parameter T_PWR_UP = 3,
-	parameter T_RI = 32
+	parameter BANKBITS = 1,
+	parameter ROWBITS = 11,
+	parameter COLBITS = 8,
+	parameter DWIDTH = 16
 	) (
 	input clk,
 	output reg error = 0,
 	output reg done = 0,
-	
-	output wire sdram_clk,
-	output wire sdram_ras_n,
-	output wire sdram_cas_n,
-	output wire sdram_we_n,
-	output wire [11:0]sdram_addr,
-`ifdef verilator
-	input wire [15:0]sdram_data_i,
-	output wire [15:0]sdram_data_o,
-`else
-	inout wire [15:0]sdram_data,
-`endif
+
+	output reg [XWIDTH-1:0]rd_addr = 0,
+	output reg [3:0]rd_len = 0,
+	output reg rd_req = 0,
+	input wire rd_ack,
+	input wire [DWIDTH-1:0]rd_data,
+	input wire rd_rdy,
+
+	output reg [XWIDTH-1:0]wr_addr = 0,
+	output reg [DWIDTH-1:0]wr_data = 0,
+	output reg [3:0]wr_len = 0,
+	output reg wr_req = 0,
+	input wire wr_ack,
+
 	output reg [15:0]info = 0,
 	output reg info_e = 0
 );
 
+localparam AWIDTH = (ROWBITS + BANKBITS);
+localparam XWIDTH = (ROWBITS + BANKBITS + COLBITS);
+
+localparam AMSB = XWIDTH-1;
+localparam DMSB = DWIDTH-1;
 
 reg [15:0]info_next;
 reg info_e_next;
 
-reg [3:0]rd_len = 0;
-reg rd_req = 0;
-wire rd_ack;
-wire [15:0]rd_data;
-wire rd_rdy;
-
-reg [3:0]wr_len = 0;
-reg wr_req = 0;
-wire wr_ack;
-
-reg rd_req_next;
-reg wr_req_next;
-reg [3:0]rd_len_next;
-reg [3:0]wr_len_next;
-
-localparam AMSB = 19;
-localparam DMSB = 15;
-
-reg [AMSB:0]rd_addr = 0;
-reg [AMSB:0]wr_addr = 0;
-reg [DMSB:0]wr_data = 0;
 reg [AMSB:0]rd_addr_next;
+reg [3:0]rd_len_next;
+reg rd_req_next;
+
 reg [AMSB:0]wr_addr_next;
 reg [DMSB:0]wr_data_next;
+reg [3:0]wr_len_next;
+reg wr_req_next;
 
 reg [31:0]pattern0;
 reg pattern0_reset = 0;
@@ -242,46 +235,6 @@ xorshift32 xs1(
 	.next(pattern1_step_next),
 	.reset(pattern1_reset),
 	.data(pattern1)
-);
-
-sdram #(
-	.T_PWR_UP(T_PWR_UP),
-	.T_RI(T_RI)
-	) sdram0 (
-	.clk(clk),
-	.reset(reset),
-
-	.pin_clk(sdram_clk),
-	.pin_ras_n(sdram_ras_n),
-	.pin_cas_n(sdram_cas_n),
-	.pin_we_n(sdram_we_n),
-	.pin_addr(sdram_addr),
-`ifdef verilator
-	.pin_data_i(sdram_data_i),
-	.pin_data_o(sdram_data_o),
-`else
-	.pin_data(sdram_data),
-`endif
-
-`ifdef SWIZZLE
-	.rd_addr({rd_addr[7:4],rd_addr[19:8],rd_addr[3:0]}),
-	.wr_addr({wr_addr[7:4],wr_addr[19:8],wr_addr[3:0]}),
-`else
-	.rd_addr(rd_addr),
-	.wr_addr(wr_addr),
-`endif
-	//.wr_addr({wr_addr[19:13], 1'b0, wr_addr[11:0]}), // force error
-
-	.rd_len(rd_len),
-	.rd_req(rd_req),
-	.rd_ack(rd_ack),
-	.rd_data(rd_data),
-	.rd_rdy(rd_rdy),
-
-	.wr_data(wr_data),
-	.wr_len(wr_len),
-	.wr_req(wr_req),
-	.wr_ack(wr_ack)
 );
 
 endmodule

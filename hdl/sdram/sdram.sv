@@ -35,7 +35,11 @@ module sdram #(
 	parameter T_RP = 3,        // Precharge to Refresh/Activate
 	parameter T_WR = 2,        // Write Recovery TimeA
 	parameter T_MRD = 3,       // Mode Register Delay
-	parameter T_PWR_UP = 25000 // Power on delay
+	parameter T_PWR_UP = 25000, // Power on delay
+
+	// Fine TuningA
+	parameter CLK_SHIFT = 0,   // 1 = delay clock by 1/2 cycle (if 1)
+	parameter CLK_DELAY = 0    // 1..128 = delay clock by N x 25pS (ECP5)
 	) (
 	input wire clk,
 	input wire reset,
@@ -43,12 +47,7 @@ module sdram #(
 	output wire pin_ras_n,
 	output wire pin_cas_n,
 	output wire pin_we_n,
-`ifdef verilator
-	input wire [DWIDTH-1:0]pin_data_i,
-	output wire [DWIDTH-1:0]pin_data_o,
-`else
 	inout wire [DWIDTH-1:0]pin_data,
-`endif
 	output wire [AWIDTH-1:0]pin_addr,
 
 	input wire [XWIDTH-1:0]rd_addr,
@@ -406,7 +405,7 @@ end
 
 assign { ras_n, cas_n, we_n } = cmd;
 
-wire [(ROWBITS-COLBITS)-1:0]io_misc = {{(ROWBITS-COLBITS)-1{1'b0}}, io_sel_a10 } << (10 - COLBITS);
+wire [(ROWBITS-COLBITS)-1:0]io_misc = {{ROWBITS-10-1{1'b0}}, io_sel_a10, {10-COLBITS{1'b0}}};
 wire [ROWBITS-1:0]io_low = io_sel_row ? io_row : { io_misc, io_col };
 assign addr = { io_bank, io_low };
 
@@ -416,13 +415,17 @@ assign pin_ras_n = ras_n;
 assign pin_cas_n = cas_n;
 assign pin_we_n = we_n;
 assign pin_addr = addr;
-assign pin_data_o = data_o;
-assign data_i = pin_data_i;
+
+// TODO: fix me
+assign pin_data = data_o;
+assign data_i = pin_data;
 
 `else
 sdram_glue #(
 	.AWIDTH(AWIDTH),
-	.DWIDTH(DWIDTH)
+	.DWIDTH(DWIDTH),
+	.CLK_SHIFT(CLK_SHIFT),
+	.CLK_DELAY(CLK_DELAY)
 	) glue (
 	.clk(clk),
 	.pin_clk(pin_clk),

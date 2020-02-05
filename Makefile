@@ -32,13 +32,6 @@ list-all-targets::
 
 #### Tools ####
 
-out/astl: src/astl.c
-	@mkdir -p out
-	gcc -g -Wall -O1 -o out/astl src/astl.c
-
-hdl/sdram/test.hex: hdl/sdram/test.asm out/astl
-	./out/astl < hdl/sdram/test.asm > hdl/sdram/test.hex
-
 out/a16: src/a16v5.c src/d16v5.c
 	@mkdir -p out
 	gcc -g -Wall -O1 -o out/a16 src/a16v5.c src/d16v5.c

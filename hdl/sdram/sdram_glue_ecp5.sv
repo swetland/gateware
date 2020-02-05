@@ -5,7 +5,9 @@
 
 module sdram_glue #(
 	parameter AWIDTH = 12,
-	parameter DWIDTH = 16
+	parameter DWIDTH = 16,
+	parameter CLK_DELAY = 0, // delay clock by 1..128 x 25pS
+	parameter CLK_SHIFT = 0  // delay clock by 1/2 cycle
 	) (
 	input wire clk,
 	output wire pin_clk,
@@ -28,12 +30,22 @@ assign pin_cas_n = cas_n;
 assign pin_we_n = we_n;
 assign pin_addr = addr;
 
+wire delay_clk;
+
+DELAYG #(
+	.DEL_MODE("USER_DEFINED"),
+	.DEL_VALUE(CLK_DELAY)
+	) clock_delay (
+	.A(delay_clk),
+	.Z(pin_clk)
+);
+
 ODDRX1F clock_ddr (
-        .Q(pin_clk),
+        .Q(delay_clk),
         .SCLK(clk),
         .RST(0),
-        .D0(1),
-        .D1(0)
+        .D0(CLK_SHIFT ? 0 : 1),
+        .D1(CLK_SHIFT ? 1 : 0)
 );
 
 genvar n;
@@ -49,4 +61,4 @@ end
 endgenerate
 
 endmodule
-	
+
