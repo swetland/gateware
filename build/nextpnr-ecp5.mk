@@ -53,14 +53,14 @@ $(PROJECT_BIT): _BIT := $(PROJECT_BIT)
 $(PROJECT_BIT): $(PROJECT_CONFIG)
 	@mkdir -p $(dir $@)
 	@echo GENERATING: $@
-	@$(ECPPACK) $(_CONFIG) $(_BIT)
+	@$(ECPPACK) $(_CONFIG) $(_BIT) --compress
 
 $(PROJECT_SVF): _CONFIG := $(PROJECT_CONFIG)
 $(PROJECT_SVF): _SVF := $(PROJECT_SVF)
 $(PROJECT_SVF): $(PROJECT_CONFIG)
 	@mkdir -p $(dir $@)
 	@echo GENERATING: $@
-	@$(ECPPACK) --svf $(_SVF) $(_CONFIG)
+	@$(ECPPACK) --svf $(_SVF) $(_CONFIG) --compress
 
 $(PROJECT_NAME): $(PROJECT_BIT)
 
