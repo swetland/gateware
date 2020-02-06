@@ -2,6 +2,6 @@
 PROJECT_TYPE := verilator-sim
 
 PROJECT_SRCS := hdl/display/testbench.sv
-PROJECT_SRCS += hdl/display/display.sv hdl/display/display_timing.sv
+PROJECT_SRCS += hdl/display/display.sv hdl/display/display-timing.sv
 
 PROJECT_VOPTS := -CFLAGS -DVGA
