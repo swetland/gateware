@@ -2,8 +2,11 @@ PROJECT_TYPE := nextpnr-ecp5
 
 PROJECT_SRCS := hdl/ulx3s-sdram.sv hdl/ulx3s.lpf
 PROJECT_SRCS += hdl/lattice/ecp5_pll_25_100.v
+PROJECT_SRCS += hdl/lattice/ecp5_pll_25_125_250.v
 PROJECT_SRCS += hdl/sdram/memtest1.sv
 PROJECT_SRCS += hdl/sdram/sdram.sv hdl/sdram/sdram_glue_ecp5.sv
 PROJECT_SRCS += hdl/xorshift.sv
+PROJECT_SRCS += hdl/display/display.sv hdl/display/display_timing.sv
+PROJECT_SRCS += hdl/display/dvi-encoder.sv hdl/display/dvi-backend.sv
 
 PROJECT_NEXTPNR_OPTS := --85k --package CABGA381 --speed 6
